@@ -290,56 +290,53 @@ if selected:
     st.divider()
     col_long, col_short = st.columns(2)
 
-    def stat_rows(stats):
-        for k, v in stats.items():
-            if v == "": st.caption(k)
-            else: st.text(f"  {k:<32} {v}")
-
     with col_long:
         st.markdown("#### 📈 LONG State  *(histogram > 0)*")
-        stat_rows({
-            "# Observations":           int(row.get("long_total_events", 0)),
-            "  Rise (price up)":        int(row.get("long_rise_n", 0)),
-            "  Fall (price down)":      int(row.get("long_fall_n", 0)),
-            "Win Rate":                 pct(row.get("long_win_rate")),
-            "Hit Edge vs Base":         pct(row.get("long_edge")),
-            "── Post-event (12W) ──":   "",
-            "Mean (Rise)":              pct(row.get("long_post_mean_rise")),
-            "Mean (Fall)":              pct(row.get("long_post_mean_fall")),
-            "Mean (Total)":             pct(row.get("long_post_mean_total")),
-            "Magnitude Edge vs Base":   pct(row.get("long_mag_edge")),
-            "+1 Std Dev":               pct(row.get("long_plus1sd")),
-            "-1 Std Dev":               pct(row.get("long_minus1sd")),
-            "Max Change":               pct(row.get("long_post_max")),
-            "Min Change":               pct(row.get("long_post_min")),
-            "── Pre-event (5W) ──":     "",
-            "Pre-event Mean":           pct(row.get("long_pre_mean")),
-            "+1 Std Dev":               pct(row.get("long_pre_plus1sd")),
-            "-1 Std Dev":               pct(row.get("long_pre_minus1sd")),
-        })
+        long_table = pd.DataFrame([
+            ("# Observations",        str(int(row.get("long_total_events", 0)))),
+            ("  Rise (price up)",     str(int(row.get("long_rise_n", 0)))),
+            ("  Fall (price down)",   str(int(row.get("long_fall_n", 0)))),
+            ("Win Rate",              pct(row.get("long_win_rate"))),
+            ("Hit Edge vs Base",      pct(row.get("long_edge"))),
+            ("── Post-event (12W) ──",""),
+            ("Mean (Rise)",           pct(row.get("long_post_mean_rise"))),
+            ("Mean (Fall)",           pct(row.get("long_post_mean_fall"))),
+            ("Mean (Total)",          pct(row.get("long_post_mean_total"))),
+            ("Magnitude Edge vs Base",pct(row.get("long_mag_edge"))),
+            ("+1 Std Dev",            pct(row.get("long_plus1sd"))),
+            ("-1 Std Dev",            pct(row.get("long_minus1sd"))),
+            ("Max Change",            pct(row.get("long_post_max"))),
+            ("Min Change",            pct(row.get("long_post_min"))),
+            ("── Pre-event (5W) ──",  ""),
+            ("Pre-event Mean",        pct(row.get("long_pre_mean"))),
+            ("+1 Std Dev",            pct(row.get("long_pre_plus1sd"))),
+            ("-1 Std Dev",            pct(row.get("long_pre_minus1sd"))),
+        ], columns=["Metric", "Value"])
+        st.dataframe(long_table, use_container_width=True, hide_index=True)
 
     with col_short:
         st.markdown("#### 📉 SHORT State  *(histogram < 0)*")
-        stat_rows({
-            "# Observations":           int(row.get("short_total_events", 0)),
-            "  Rise (price up)":        int(row.get("short_rise_n", 0)),
-            "  Fall (price down)":      int(row.get("short_fall_n", 0)),
-            "Win Rate (Fall/Total)":    pct(row.get("short_win_rate")),
-            "Hit Edge vs Base":         pct(row.get("short_edge")),
-            "── Post-event (hold) ──":  "",
-            "Mean (Rise)":              pct(row.get("short_post_mean_rise")),
-            "Mean (Fall)":              pct(row.get("short_post_mean_fall")),
-            "Mean (Total)":             pct(row.get("short_post_mean_total")),
-            "Magnitude Edge vs Base":   pct(row.get("short_mag_edge")),
-            "+1 Std Dev":               pct(row.get("short_plus1sd")),
-            "-1 Std Dev":               pct(row.get("short_minus1sd")),
-            "Max Change":               pct(row.get("short_post_max")),
-            "Min Change":               pct(row.get("short_post_min")),
-            "── Pre-event (5W) ──":     "",
-            "Pre-event Mean":           pct(row.get("short_pre_mean")),
-            "+1 Std Dev":               pct(row.get("short_pre_plus1sd")),
-            "-1 Std Dev":               pct(row.get("short_pre_minus1sd")),
-        })
+        short_table = pd.DataFrame([
+            ("# Observations",        str(int(row.get("short_total_events", 0)))),
+            ("  Rise (price up)",     str(int(row.get("short_rise_n", 0)))),
+            ("  Fall (price down)",   str(int(row.get("short_fall_n", 0)))),
+            ("Win Rate (Fall/Total)", pct(row.get("short_win_rate"))),
+            ("Hit Edge vs Base",      pct(row.get("short_edge"))),
+            ("── Post-event (hold) ──",""),
+            ("Mean (Rise)",           pct(row.get("short_post_mean_rise"))),
+            ("Mean (Fall)",           pct(row.get("short_post_mean_fall"))),
+            ("Mean (Total)",          pct(row.get("short_post_mean_total"))),
+            ("Magnitude Edge vs Base",pct(row.get("short_mag_edge"))),
+            ("+1 Std Dev",            pct(row.get("short_plus1sd"))),
+            ("-1 Std Dev",            pct(row.get("short_minus1sd"))),
+            ("Max Change",            pct(row.get("short_post_max"))),
+            ("Min Change",            pct(row.get("short_post_min"))),
+            ("── Pre-event (5W) ──",  ""),
+            ("Pre-event Mean",        pct(row.get("short_pre_mean"))),
+            ("+1 Std Dev",            pct(row.get("short_pre_plus1sd"))),
+            ("-1 Std Dev",            pct(row.get("short_pre_minus1sd"))),
+        ], columns=["Metric", "Value"])
+        st.dataframe(short_table, use_container_width=True, hide_index=True)
 
 st.divider()
 
