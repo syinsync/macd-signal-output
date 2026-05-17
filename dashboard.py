@@ -220,11 +220,11 @@ else:
 
     edge_cols = [c for c in ["L: HitEdge","L: MagEdge","S: HitEdge","S: MagEdge"] if c in display.columns]
     styled = display.style\
-        .applymap(color_signal,      subset=["State"])\
-        .applymap(color_expectancy,  subset=["Score"])\
-        .applymap(color_winrate,     subset=["L: WinRate", "S: WinRate"])\
-        .applymap(color_edge,        subset=edge_cols)\
-        .applymap(color_return,      subset=["L: Mean","S: Mean","L: +1SD","S: +1SD","L: -1SD","S: -1SD"])
+        .map(color_signal,      subset=["State"])\
+        .map(color_expectancy,  subset=["Score"])\
+        .map(color_winrate,     subset=["L: WinRate", "S: WinRate"])\
+        .map(color_edge,        subset=edge_cols)\
+        .map(color_return,      subset=["L: Mean","S: Mean","L: +1SD","S: +1SD","L: -1SD","S: -1SD"])
 
     st.dataframe(styled, use_container_width=True, height=600)
 
