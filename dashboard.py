@@ -93,6 +93,12 @@ with col_refresh:
         st.cache_data.clear()
         st.rerun()
 
+_macd   = df['macd_params'].iloc[0]  if 'macd_params'      in df.columns else 'n/a'
+_tf     = df['timeframe'].iloc[0]    if 'timeframe'         in df.columns else 'n/a'
+_lhold  = f"{int(df['long_hold_bars'].iloc[0])}W"  if 'long_hold_bars'  in df.columns else 'see config'
+_shold  = f"{int(df['short_hold_bars'].iloc[0])}W" if 'short_hold_bars' in df.columns else 'see config'
+st.caption(f"⚙️ MACD({_macd}) | Timeframe: {_tf} | Long hold: {_lhold} | Short hold: {_shold}")
+
 # ── How to read ───────────────────────────────────────────────────────────────
 with st.expander("ℹ️ How to read the scores", expanded=False):
     st.markdown("""
@@ -158,6 +164,7 @@ if "active_signal" in df.columns:
                 f"{r['symbol']}({pct(r.get('long_edge'))})"
                 for _, r in top.iterrows()
             ))
+            st.caption("_% = HitEdge vs base rate · positive = signal adds value · negative = worse than random_")
     with c2:
         st.metric("📉 SHORT (histogram -)", len(short_rows))
         if not short_rows.empty:
@@ -166,6 +173,7 @@ if "active_signal" in df.columns:
                 f"{r['symbol']}({pct(r.get('short_edge'))})"
                 for _, r in top.iterrows()
             ))
+            st.caption("_% = HitEdge vs base rate · positive = signal adds value · negative = worse than random_")
     with c3:
         st.metric("⬜ Neutral", len(none_rows))
         if not none_rows.empty:
