@@ -105,14 +105,17 @@ st.info("""
 
 This dashboard tracks weekly MACD(12,26,9) histogram signals across a watchlist of stocks and ETFs.
 
-📈 **LONG signal:** MACD histogram turns positive → historically analysed holding for 12 weeks \n
-📉 **SHORT signal:** MACD histogram turns negative → historically analysed holding for 3 weeks
+📈 **LONG signal:** MACD histogram turns positive → historical analysis of price behaviour over 12 weeks \n
+📉 **SHORT signal:** MACD histogram turns negative → historical analysis of price behaviour over 3 weeks
 
----
-⚠️ *These are statistical observations from historical data — not a full backtest. Results show how \
-prices behaved after each signal over the specified holding period. Past performance does not \
-guarantee future results. This is not financial advice.*
+**How to interpret the stats:**
+- **Win Rate** alone is misleading — a stock that goes up 70% of all weeks will show 70% win rate even with no signal
+- **HitEdge** is more meaningful — it measures how much BETTER the signal performs vs just buying/selling randomly every week
+- Positive HitEdge = signal genuinely adds value above market drift
+- Negative HitEdge = signal underperforms random — ignore it for that ticker
+- **MagEdge** = signal weeks produce larger moves than average weeks
 """)
+st.warning("⚠️ **Disclaimer:** These are statistical observations from historical data, not a full backtest or forward prediction. Past performance does not guarantee future results. This is not financial advice.")
 
 # ── How to read ───────────────────────────────────────────────────────────────
 with st.expander("ℹ️ How to read the scores", expanded=False):
