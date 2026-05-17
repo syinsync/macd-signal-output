@@ -99,6 +99,21 @@ _lhold  = f"{int(df['long_hold_bars'].iloc[0])}W"  if 'long_hold_bars'  in df.co
 _shold  = f"{int(df['short_hold_bars'].iloc[0])}W" if 'short_hold_bars' in df.columns else 'see config'
 st.caption(f"⚙️ MACD({_macd}) | Timeframe: {_tf} | Long hold: {_lhold} | Short hold: {_shold}")
 
+# ── Strategy overview ─────────────────────────────────────────────────────────
+st.info("""
+**Strategy Overview**
+
+This dashboard tracks weekly MACD(12,26,9) histogram signals across a watchlist of stocks and ETFs.
+
+📈 **LONG signal:** MACD histogram turns positive → historically analysed holding for 12 weeks \n
+📉 **SHORT signal:** MACD histogram turns negative → historically analysed holding for 3 weeks
+
+---
+⚠️ *These are statistical observations from historical data — not a full backtest. Results show how \
+prices behaved after each signal over the specified holding period. Past performance does not \
+guarantee future results. This is not financial advice.*
+""")
+
 # ── How to read ───────────────────────────────────────────────────────────────
 with st.expander("ℹ️ How to read the scores", expanded=False):
     st.markdown("""
