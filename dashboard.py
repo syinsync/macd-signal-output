@@ -162,6 +162,9 @@ with st.sidebar:
     signal_filter = st.radio(
         "Signal State", ["All", "LONG only", "SHORT only"], index=0
     )
+    asset_filter = st.radio(
+        "Asset Type", ["All", "Stock", "ETF"], index=0
+    )
     min_long_wr      = st.slider("Min Long Win Rate",       0, 100,  0, 5, format="%d%%")
     min_short_wr     = st.slider("Min Short Win Rate",      0, 100,  0, 5, format="%d%%")
     min_long_edge    = st.slider("Min Long HitEdge",      -20,  20,-20, 1, format="%d%%")
@@ -178,6 +181,8 @@ with st.sidebar:
 filtered = df.copy()
 if signal_filter == "LONG only":    filtered = filtered[filtered["active_signal"] == "LONG"]
 elif signal_filter == "SHORT only": filtered = filtered[filtered["active_signal"] == "SHORT"]
+if asset_filter != "All" and "asset_type" in filtered.columns:
+    filtered = filtered[filtered["asset_type"] == asset_filter]
 if "long_win_rate"       in filtered.columns: filtered = filtered[filtered["long_win_rate"].fillna(0)       >= min_long_wr / 100]
 if "short_win_rate"      in filtered.columns: filtered = filtered[filtered["short_win_rate"].fillna(0)      >= min_short_wr / 100]
 if "long_edge"           in filtered.columns: filtered = filtered[filtered["long_edge"].fillna(0)           >= min_long_edge / 100]
@@ -189,24 +194,38 @@ if "active_signal" in df.columns:
     long_rows  = df[df["active_signal"] == "LONG"]
     short_rows = df[df["active_signal"] == "SHORT"]
 
+    def _ticker_caption(rows, edge_col):
+        if rows.empty:
+            return
+        top = rows.sort_values(edge_col, ascending=False)
+        st.caption(" · ".join(
+            f"{r['symbol']}({pct(r.get(edge_col))})"
+            for _, r in top.iterrows()
+        ))
+
+    has_types = "asset_type" in df.columns
     c1, c2 = st.columns(2)
     with c1:
         st.metric("📈 LONG (histogram +)", len(long_rows))
         if not long_rows.empty:
-            top = long_rows.sort_values("long_edge", ascending=False)
-            st.caption(" · ".join(
-                f"{r['symbol']}({pct(r.get('long_edge'))})"
-                for _, r in top.iterrows()
-            ))
+            if has_types:
+                st.caption("**Stocks**")
+                _ticker_caption(long_rows[long_rows["asset_type"] == "Stock"], "long_edge")
+                st.caption("**ETFs**")
+                _ticker_caption(long_rows[long_rows["asset_type"] == "ETF"], "long_edge")
+            else:
+                _ticker_caption(long_rows, "long_edge")
             st.caption("_% = HitEdge vs base rate · positive = signal adds value · negative = worse than random_")
     with c2:
         st.metric("📉 SHORT (histogram -)", len(short_rows))
         if not short_rows.empty:
-            top = short_rows.sort_values("short_edge", ascending=False)
-            st.caption(" · ".join(
-                f"{r['symbol']}({pct(r.get('short_edge'))})"
-                for _, r in top.iterrows()
-            ))
+            if has_types:
+                st.caption("**Stocks**")
+                _ticker_caption(short_rows[short_rows["asset_type"] == "Stock"], "short_edge")
+                st.caption("**ETFs**")
+                _ticker_caption(short_rows[short_rows["asset_type"] == "ETF"], "short_edge")
+            else:
+                _ticker_caption(short_rows, "short_edge")
             st.caption("_% = HitEdge vs base rate · positive = signal adds value · negative = worse than random_")
 
 st.divider()
@@ -219,6 +238,7 @@ if filtered.empty:
 else:
     display = pd.DataFrame()
     display["Ticker"]       = filtered["symbol"]
+    display["Type"]         = filtered["asset_type"] if "asset_type" in filtered.columns else "—"
     display["State"]        = filtered["active_signal"]
     display["Score"]        = filtered["combined_expectancy"].apply(pct)
 
