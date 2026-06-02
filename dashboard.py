@@ -19,19 +19,20 @@ st.set_page_config(page_title="MACD Signal Scanner", layout="wide")
 SCRIPT_DIR  = os.path.dirname(os.path.abspath(__file__))
 RESULTS_DIR = os.path.join(SCRIPT_DIR, "results")
 
-# ── Color constants ───────────────────────────────────────────────────────────
-C_BG       = "#080B14"
-C_CARD     = "#0F1629"
-C_BORDER   = "#1E2D4A"
-C_LONG     = "#1A9E6E"   # emerald  — LONG state, positive values
-C_LONG_T   = "#2DC99A"   # lighter emerald for body text readability
-C_SHORT    = "#9E2A2A"   # burgundy — SHORT state, negative values
-C_SHORT_T  = "#D05050"   # lighter burgundy for body text readability
-C_GOLD     = "#B8960C"   # gold — headers, score highlights
-C_GOLD_T   = "#D4A817"   # lighter gold for body text readability
-C_ORANGE   = "#C97D2A"   # warm orange — mild negative edge
-C_TEXT     = "#E8EAF0"   # primary text
-C_TEXT2    = "#7C8DB0"   # secondary text
+# ── Color constants (light theme) ─────────────────────────────────────────────
+C_BG       = "#F8F9FA"   # app background
+C_CARD     = "#FFFFFF"   # card / surface
+C_CARD_ALT = "#F7FAFC"   # zebra alt rows
+C_SECTION  = "#F0F4F8"   # section tint backgrounds
+C_BORDER   = "#E2E8F0"   # borders
+C_POS      = "#276749"   # forest green — positive values, LONG
+C_NEG      = "#9B2C2C"   # deep red — negative values, SHORT
+C_ACCENT   = "#2B6CB0"   # navy — headers, score highlights
+C_ORANGE   = "#C05621"   # warm orange — mild negative edge
+C_TEXT     = "#1A202C"   # primary text
+C_TEXT2    = "#4A5568"   # secondary text
+C_GREY     = "#718096"   # grey text for negative-edge pills
+C_GREY_BDR = "#CBD5E0"   # grey border for negative-edge pills
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def pct(v, decimals=1):
@@ -47,39 +48,37 @@ def _tf_unit(tf: str) -> str:
     if "D" in t: return "D"
     return ""
 
-# ── Dataframe cell colouring (updated palette) ────────────────────────────────
+# ── Dataframe cell colouring ──────────────────────────────────────────────────
 def color_signal(val):
-    if val == "LONG":
-        return f"background-color: rgba(26,158,110,0.14); color: {C_LONG_T}; font-weight: bold"
-    if val == "SHORT":
-        return f"background-color: rgba(158,42,42,0.14); color: {C_SHORT_T}; font-weight: bold"
+    if val == "LONG":  return f"background-color: #F0FFF4; color: {C_POS}; font-weight: bold"
+    if val == "SHORT": return f"background-color: #FFF5F5; color: {C_NEG}; font-weight: bold"
     return ""
 
 def color_winrate(val):
     try:
         v = float(str(val).replace("%", "")) / 100
-        if v >= 0.70: return f"color: {C_LONG_T}; font-weight: bold"
-        if v >= 0.60: return f"color: {C_LONG_T}"
+        if v >= 0.70: return f"color: {C_POS}; font-weight: bold"
+        if v >= 0.60: return f"color: {C_POS}"
         if v >= 0.50: return f"color: {C_ORANGE}"
-        return f"color: {C_SHORT_T}"
+        return f"color: {C_NEG}"
     except:
         return ""
 
 def color_edge(val):
     try:
         v = float(str(val).replace("%", ""))
-        if v >= 3:  return f"color: {C_LONG_T}; font-weight: bold"
-        if v >= 0:  return f"color: {C_LONG_T}"
+        if v >= 3:  return f"color: {C_POS}; font-weight: bold"
+        if v >= 0:  return f"color: {C_POS}"
         if v >= -3: return f"color: {C_ORANGE}"
-        return f"color: {C_SHORT_T}"
+        return f"color: {C_NEG}"
     except:
         return ""
 
 def color_return(val):
     try:
         v = float(str(val).replace("%", ""))
-        if v > 0: return f"color: {C_LONG_T}"
-        if v < 0: return f"color: {C_SHORT_T}"
+        if v > 0: return f"color: {C_POS}"
+        if v < 0: return f"color: {C_NEG}"
     except:
         pass
     return ""
@@ -87,10 +86,10 @@ def color_return(val):
 def color_expectancy(val):
     try:
         v = float(str(val).replace("%", ""))
-        if v >= 15: return f"color: {C_GOLD_T}; font-weight: bold"
-        if v >= 8:  return f"color: {C_GOLD_T}"
+        if v >= 15: return f"color: {C_ACCENT}; font-weight: bold"
+        if v >= 8:  return f"color: {C_ACCENT}"
         if v >= 4:  return f"color: {C_ORANGE}"
-        return f"color: {C_SHORT_T}"
+        return f"color: {C_NEG}"
     except:
         return ""
 
@@ -104,15 +103,15 @@ def _val_cls(val_str: str) -> str:
     return ""
 
 def _zebra(row):
-    bg = C_CARD if row.name % 2 != 0 else "#141D35"
+    bg = C_CARD if row.name % 2 != 0 else C_CARD_ALT
     return [f"background-color: {bg}"] * len(row)
 
 # ── HTML component builders ───────────────────────────────────────────────────
-_DIVIDER = f'<hr style="border:none;border-top:1px solid {C_GOLD};opacity:0.25;margin:0.25rem 0;">'
+_DIVIDER = f'<hr style="border:none;border-top:1px solid {C_ACCENT};opacity:0.18;margin:0.25rem 0;">'
 _SPACER  = '<div style="margin:1.5rem"></div>'
 
 def _metric_card_html(count: int, label: str, side: str) -> str:
-    val_color = C_LONG_T if side == "long" else C_SHORT_T
+    val_color = C_POS if side == "long" else C_NEG
     return (
         f'<div class="metric-card">'
         f'<div class="metric-label">{label}</div>'
@@ -120,15 +119,12 @@ def _metric_card_html(count: int, label: str, side: str) -> str:
         f'</div>'
     )
 
-def _pills_html(rows: pd.DataFrame, edge_col: str) -> str:
+def _signal_pills_html(rows: pd.DataFrame, edge_col: str) -> str:
+    """Current Signal State pills — 4 subsections: Stocks/ETFs × Positive/Negative edge."""
     if rows.empty:
         return ""
-    is_long  = "long" in edge_col
-    pill_cls = "pill-long" if is_long else "pill-short"
 
-    def make_pills(subset: pd.DataFrame) -> str:
-        if subset.empty:
-            return ""
+    def make_pills(subset: pd.DataFrame, pill_cls: str) -> str:
         pills = []
         for _, r in subset.sort_values(edge_col, ascending=False).iterrows():
             try:
@@ -140,24 +136,40 @@ def _pills_html(rows: pd.DataFrame, edge_col: str) -> str:
             pills.append(f'<span class="pill {pill_cls}">{label}</span>')
         return '<div class="pill-container">' + "".join(pills) + "</div>"
 
-    has_types = "asset_type" in rows.columns
-    if not has_types:
-        return make_pills(rows)
+    def subsection(label: str, subset: pd.DataFrame, pill_cls: str) -> str:
+        if subset.empty:
+            return ""
+        return (
+            f'<p class="pill-group-label">{label} '
+            f'<span class="pill-count">{len(subset)}</span></p>'
+            + make_pills(subset, pill_cls)
+        )
 
-    html   = ""
-    stocks = rows[rows["asset_type"] == "Stock"]
-    etfs   = rows[rows["asset_type"] == "ETF"]
-    if not stocks.empty:
-        html += '<p class="pill-group-label">Stocks</p>' + make_pills(stocks)
-    if not etfs.empty:
-        html += '<p class="pill-group-label">ETFs</p>' + make_pills(etfs)
+    has_types = "asset_type" in rows.columns
+    html = ""
+
+    if has_types:
+        stocks = rows[rows["asset_type"] == "Stock"]
+        etfs   = rows[rows["asset_type"] == "ETF"]
+        html += subsection("Stocks — Positive Edge",
+                           stocks[stocks[edge_col].fillna(0) > 0],  "pill-pos-edge")
+        html += subsection("Stocks — Negative Edge",
+                           stocks[stocks[edge_col].fillna(0) <= 0], "pill-neg-edge")
+        html += subsection("ETFs — Positive Edge",
+                           etfs[etfs[edge_col].fillna(0) > 0],      "pill-pos-edge")
+        html += subsection("ETFs — Negative Edge",
+                           etfs[etfs[edge_col].fillna(0) <= 0],     "pill-neg-edge")
+    else:
+        html += subsection("Positive Edge", rows[rows[edge_col].fillna(0) > 0],  "pill-pos-edge")
+        html += subsection("Negative Edge", rows[rows[edge_col].fillna(0) <= 0], "pill-neg-edge")
+
     return html
 
 def _edge_metrics_html(row: pd.Series) -> str:
     def card(label, val_str, help_text=""):
         try:
-            v = float(val_str.replace("%", ""))
-            vc = C_GOLD_T if v > 0 else C_SHORT_T
+            v  = float(val_str.replace("%", ""))
+            vc = C_POS if v > 0 else C_NEG
         except:
             vc = C_TEXT2
         title = f' title="{help_text}"' if help_text else ""
@@ -179,7 +191,7 @@ def _edge_metrics_html(row: pd.Series) -> str:
 def _detail_card_html(row: pd.Series, side: str, hold: str, pre: str) -> str:
     is_long   = side == "LONG"
     prefix    = "long" if is_long else "short"
-    hdr_bg    = C_LONG if is_long else C_SHORT
+    hdr_bg    = C_POS if is_long else C_NEG
     direction = "histogram &gt; 0" if is_long else "histogram &lt; 0"
     win_label = "Win Rate (Rise / Total)" if is_long else "Win Rate (Fall / Total)"
 
@@ -255,7 +267,7 @@ html, body {{
 
 /* ── Sidebar ──────────────────────────────────────────────────────────── */
 [data-testid="stSidebar"] {{
-    background-color: {C_CARD} !important;
+    background-color: {C_SECTION} !important;
     border-right: 1px solid {C_BORDER} !important;
 }}
 [data-testid="stSidebar"] label,
@@ -298,7 +310,7 @@ html, body {{
 
 /* ── Page title ───────────────────────────────────────────────────────── */
 .title-bar {{
-    border-bottom: 2px solid rgba(184,150,12,0.4);
+    border-bottom: 2px solid rgba(43,108,176,0.25);
     padding-bottom: 0.75rem;
     margin-bottom: 0.25rem;
 }}
@@ -319,7 +331,7 @@ html, body {{
 .section-title {{
     font-size: 18px;
     font-weight: 600;
-    color: {C_GOLD_T};
+    color: {C_ACCENT};
     margin: 0 0 0.9rem;
     letter-spacing: 0.01em;
 }}
@@ -350,9 +362,21 @@ html, body {{
 .pill-group-label {{
     font-size: 0.65rem;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: #3A4B68;
-    margin: 0.8rem 0 0.3rem;
+    letter-spacing: 0.08em;
+    color: {C_TEXT2};
+    margin: 0.85rem 0 0.3rem;
+    font-weight: 600;
+}}
+.pill-count {{
+    background: {C_SECTION};
+    color: {C_TEXT2};
+    border-radius: 999px;
+    padding: 0.05rem 0.45rem;
+    font-size: 0.62rem;
+    font-weight: 600;
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 0.2rem;
 }}
 .pill-container {{
     display: flex;
@@ -368,22 +392,23 @@ html, body {{
     line-height: 1.55;
     white-space: nowrap;
 }}
-.pill-long {{
-    background: rgba(26, 158, 110, 0.12);
-    color: {C_LONG_T};
-    border: 1px solid rgba(26, 158, 110, 0.32);
+/* Current Signal State: quadrant pills */
+.pill-pos-edge {{
+    background: {C_CARD};
+    color: {C_POS};
+    border: 1px solid {C_POS};
 }}
-.pill-short {{
-    background: rgba(158, 42, 42, 0.12);
-    color: {C_SHORT_T};
-    border: 1px solid rgba(158, 42, 42, 0.32);
+.pill-neg-edge {{
+    background: {C_CARD};
+    color: {C_GREY};
+    border: 1px solid {C_GREY_BDR};
 }}
 
 /* ── Info / disclaimer boxes ──────────────────────────────────────────── */
 .info-box {{
     background: {C_CARD};
     border: 1px solid {C_BORDER};
-    border-left: 3px solid {C_LONG};
+    border-left: 3px solid {C_POS};
     border-radius: 0 8px 8px 0;
     padding: 1rem 1.3rem;
     margin: 0.5rem 0;
@@ -394,12 +419,12 @@ html, body {{
 .warn-box {{
     background: {C_CARD};
     border: 1px solid {C_BORDER};
-    border-left: 3px solid {C_SHORT};
+    border-left: 3px solid {C_NEG};
     border-radius: 0 8px 8px 0;
     padding: 0.75rem 1.3rem;
     margin: 0.5rem 0;
     font-size: 0.77rem;
-    color: #5A6880;
+    color: {C_TEXT2};
     line-height: 1.6;
 }}
 
@@ -456,18 +481,18 @@ html, body {{
     align-items: center;
     padding: 0.28rem 0;
     font-size: 13px;
-    border-bottom: 1px solid rgba(30, 45, 74, 0.7);
+    border-bottom: 1px solid {C_BORDER};
 }}
 .detail-row:last-child {{ border-bottom: none; }}
 .detail-label {{ color: {C_TEXT2}; }}
 .detail-value {{ font-weight: 500; color: {C_TEXT}; }}
-.detail-value.pos {{ color: {C_LONG_T}; }}
-.detail-value.neg {{ color: {C_SHORT_T}; }}
+.detail-value.pos {{ color: {C_POS}; }}
+.detail-value.neg {{ color: {C_NEG}; }}
 .detail-section-head {{
     font-size: 0.62rem;
     text-transform: uppercase;
     letter-spacing: 0.11em;
-    color: #2E3D58;
+    color: {C_GREY_BDR};
     padding: 0.6rem 0 0.1rem;
 }}
 </style>
@@ -483,7 +508,7 @@ with col_title:
         unsafe_allow_html=True,
     )
 with col_refresh:
-    st.markdown('<div style="margin:1.5rem"></div>', unsafe_allow_html=True)
+    st.markdown(_SPACER, unsafe_allow_html=True)
     if st.button("Refresh", use_container_width=True):
         st.cache_data.clear()
         st.rerun()
@@ -556,7 +581,7 @@ Negative edge = signal underperforms random for that side.
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown(f'<p style="color:{C_GOLD_T};font-weight:600;font-size:15px;margin-bottom:0.5rem;">Filters</p>', unsafe_allow_html=True)
+    st.markdown(f'<p style="color:{C_ACCENT};font-weight:600;font-size:15px;margin-bottom:0.5rem;">Filters</p>', unsafe_allow_html=True)
     signal_filter = st.radio("Signal State", ["All", "LONG only", "SHORT only"], index=0)
     asset_filter  = st.radio("Asset Type",   ["All", "Stock", "ETF"],            index=0)
     st.markdown(_DIVIDER, unsafe_allow_html=True)
@@ -565,7 +590,7 @@ with st.sidebar:
     min_long_edge    = st.slider("Min Long HitEdge",       -20,  20,-20, 1, format="%d%%")
     min_combined_exp = st.slider("Min Combined Expectancy",  0,  30,  0, 1, format="%d%%")
     st.markdown(_DIVIDER, unsafe_allow_html=True)
-    st.markdown(f'<p style="color:{C_GOLD_T};font-weight:600;font-size:15px;margin-bottom:0.5rem;">Display Options</p>', unsafe_allow_html=True)
+    st.markdown(f'<p style="color:{C_ACCENT};font-weight:600;font-size:15px;margin-bottom:0.5rem;">Display Options</p>', unsafe_allow_html=True)
     show_mag_edge   = st.checkbox("Magnitude Edge columns", value=False)
     show_means      = st.checkbox("Mean return columns",    value=False)
     show_sd         = st.checkbox("Std Dev bands",          value=False)
@@ -596,16 +621,16 @@ if "active_signal" in df.columns:
     c1, c2 = st.columns(2)
     with c1:
         st.markdown(_metric_card_html(len(long_rows),  "LONG  ·  histogram positive",  "long"),  unsafe_allow_html=True)
-        st.markdown(_pills_html(long_rows,  "long_edge"),  unsafe_allow_html=True)
+        st.markdown(_signal_pills_html(long_rows,  "long_edge"),  unsafe_allow_html=True)
     with c2:
         st.markdown(_metric_card_html(len(short_rows), "SHORT  ·  histogram negative", "short"), unsafe_allow_html=True)
-        st.markdown(_pills_html(short_rows, "short_edge"), unsafe_allow_html=True)
+        st.markdown(_signal_pills_html(short_rows, "short_edge"), unsafe_allow_html=True)
 
     st.markdown(
-        f'<p style="font-size:0.7rem;color:#2E3D58;margin-top:0.7rem;">'
+        f'<p style="font-size:0.7rem;color:{C_GREY_BDR};margin-top:0.8rem;">'
         f'% shown = HitEdge vs unconditional base rate &nbsp;&middot;&nbsp; '
-        f'positive = signal adds directional value &nbsp;&middot;&nbsp; '
-        f'negative = worse than random</p>',
+        f'green = signal adds directional value &nbsp;&middot;&nbsp; '
+        f'grey = worse than random</p>',
         unsafe_allow_html=True,
     )
 
@@ -690,7 +715,7 @@ selected    = st.selectbox("Select a ticker", all_symbols, label_visibility="col
 if selected:
     row = df[df["symbol"] == selected].iloc[0]
     sig       = row.get("active_signal", "SHORT")
-    sig_color = C_LONG if sig == "LONG" else C_SHORT
+    sig_color = C_POS if sig == "LONG" else C_NEG
 
     # Ticker + signal badge header
     st.markdown(
@@ -712,12 +737,12 @@ if selected:
         unsafe_allow_html=True,
     )
 
-    # Edge summary — custom HTML metric cards (gold=positive, burgundy=negative)
+    # Edge summary — custom HTML metric cards
     st.markdown(_edge_metrics_html(row), unsafe_allow_html=True)
 
     # Base rate reference line
     st.markdown(
-        f'<p style="font-size:0.7rem;color:#2E3D58;margin:0.1rem 0 1.1rem;">'
+        f'<p style="font-size:0.7rem;color:{C_GREY_BDR};margin:0.1rem 0 1.1rem;">'
         f'Base rise rate ({_lhold}): <strong style="color:{C_TEXT2};">{pct(row.get("base_long_rise_rate"))}</strong>'
         f'&nbsp;&nbsp;&middot;&nbsp;&nbsp;'
         f'Base fall rate ({_shold}): <strong style="color:{C_TEXT2};">{pct(row.get("base_short_fall_rate"))}</strong>'
