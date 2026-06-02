@@ -290,6 +290,21 @@ html, body {{
 [data-testid="stDataFrameResizable"] {{
     background-color: {C_CARD} !important;
 }}
+/* Column headers and cell text — HTML table fallback (non-canvas renderers) */
+.stDataFrame th {{
+    color: {C_TEXT} !important;
+    background-color: {C_SECTION} !important;
+    font-weight: 600 !important;
+    border-bottom: 1px solid {C_BORDER} !important;
+}}
+.stDataFrame td {{
+    color: {C_TEXT} !important;
+}}
+/* Glide-data-grid column header text (canvas overlay labels) */
+[data-testid="stDataFrameResizable"] [role="columnheader"],
+[data-testid="stDataFrameResizable"] [role="gridcell"] {{
+    color: {C_TEXT} !important;
+}}
 
 /* ── st.metric ────────────────────────────────────────────────────────── */
 [data-testid="stMetricValue"] {{
@@ -306,6 +321,14 @@ html, body {{
     border: 1px solid {C_BORDER};
     border-radius: 8px;
     padding: 0.75rem 1rem;
+}}
+
+/* ── Expander headers ─────────────────────────────────────────────────── */
+[data-testid="stExpander"] summary,
+[data-testid="stExpander"] summary p,
+[data-testid="stExpander"] summary span {{
+    color: {C_TEXT} !important;
+    font-weight: 600 !important;
 }}
 
 /* ── Page title ───────────────────────────────────────────────────────── */
@@ -492,7 +515,7 @@ html, body {{
     font-size: 0.62rem;
     text-transform: uppercase;
     letter-spacing: 0.11em;
-    color: {C_GREY_BDR};
+    color: {C_TEXT2};
     padding: 0.6rem 0 0.1rem;
 }}
 </style>
@@ -627,7 +650,7 @@ if "active_signal" in df.columns:
         st.markdown(_signal_pills_html(short_rows, "short_edge"), unsafe_allow_html=True)
 
     st.markdown(
-        f'<p style="font-size:0.7rem;color:{C_GREY_BDR};margin-top:0.8rem;">'
+        f'<p style="font-size:0.7rem;color:{C_TEXT2};margin-top:0.8rem;">'
         f'% shown = HitEdge vs unconditional base rate &nbsp;&middot;&nbsp; '
         f'green = signal adds directional value &nbsp;&middot;&nbsp; '
         f'grey = worse than random</p>',
@@ -742,8 +765,8 @@ if selected:
 
     # Base rate reference line
     st.markdown(
-        f'<p style="font-size:0.7rem;color:{C_GREY_BDR};margin:0.1rem 0 1.1rem;">'
-        f'Base rise rate ({_lhold}): <strong style="color:{C_TEXT2};">{pct(row.get("base_long_rise_rate"))}</strong>'
+        f'<p style="font-size:0.7rem;color:{C_TEXT2};margin:0.1rem 0 1.1rem;">'
+        f'Base rise rate ({_lhold}): <strong style="color:{C_TEXT};">{pct(row.get("base_long_rise_rate"))}</strong>'
         f'&nbsp;&nbsp;&middot;&nbsp;&nbsp;'
         f'Base fall rate ({_shold}): <strong style="color:{C_TEXT2};">{pct(row.get("base_short_fall_rate"))}</strong>'
         f'&nbsp;&nbsp;&middot;&nbsp;&nbsp;'
