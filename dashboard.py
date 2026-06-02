@@ -19,6 +19,20 @@ st.set_page_config(page_title="MACD Signal Scanner", layout="wide")
 SCRIPT_DIR  = os.path.dirname(os.path.abspath(__file__))
 RESULTS_DIR = os.path.join(SCRIPT_DIR, "results")
 
+# ── Color constants ───────────────────────────────────────────────────────────
+C_BG       = "#080B14"
+C_CARD     = "#0F1629"
+C_BORDER   = "#1E2D4A"
+C_LONG     = "#1A9E6E"   # emerald  — LONG state, positive values
+C_LONG_T   = "#2DC99A"   # lighter emerald for body text readability
+C_SHORT    = "#9E2A2A"   # burgundy — SHORT state, negative values
+C_SHORT_T  = "#D05050"   # lighter burgundy for body text readability
+C_GOLD     = "#B8960C"   # gold — headers, score highlights
+C_GOLD_T   = "#D4A817"   # lighter gold for body text readability
+C_ORANGE   = "#C97D2A"   # warm orange — mild negative edge
+C_TEXT     = "#E8EAF0"   # primary text
+C_TEXT2    = "#7C8DB0"   # secondary text
+
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def pct(v, decimals=1):
     try:
@@ -33,36 +47,39 @@ def _tf_unit(tf: str) -> str:
     if "D" in t: return "D"
     return ""
 
+# ── Dataframe cell colouring (updated palette) ────────────────────────────────
 def color_signal(val):
-    if val == "LONG":  return "background-color: #1a2a4a; color: #4F8EF7; font-weight: bold"
-    if val == "SHORT": return "background-color: #3a1a1a; color: #F75E5E; font-weight: bold"
+    if val == "LONG":
+        return f"background-color: rgba(26,158,110,0.14); color: {C_LONG_T}; font-weight: bold"
+    if val == "SHORT":
+        return f"background-color: rgba(158,42,42,0.14); color: {C_SHORT_T}; font-weight: bold"
     return ""
 
 def color_winrate(val):
     try:
         v = float(str(val).replace("%", "")) / 100
-        if v >= 0.70: return "color: #4caf50; font-weight: bold"
-        if v >= 0.60: return "color: #8bc34a"
-        if v >= 0.50: return "color: #ff9800"
-        return "color: #F75E5E"
+        if v >= 0.70: return f"color: {C_LONG_T}; font-weight: bold"
+        if v >= 0.60: return f"color: {C_LONG_T}"
+        if v >= 0.50: return f"color: {C_ORANGE}"
+        return f"color: {C_SHORT_T}"
     except:
         return ""
 
 def color_edge(val):
     try:
         v = float(str(val).replace("%", ""))
-        if v >= 3:  return "color: #4F8EF7; font-weight: bold"
-        if v >= 0:  return "color: #4F8EF7"
-        if v >= -3: return "color: #ff9800"
-        return "color: #F75E5E"
+        if v >= 3:  return f"color: {C_LONG_T}; font-weight: bold"
+        if v >= 0:  return f"color: {C_LONG_T}"
+        if v >= -3: return f"color: {C_ORANGE}"
+        return f"color: {C_SHORT_T}"
     except:
         return ""
 
 def color_return(val):
     try:
         v = float(str(val).replace("%", ""))
-        if v > 0: return "color: #4F8EF7"
-        if v < 0: return "color: #F75E5E"
+        if v > 0: return f"color: {C_LONG_T}"
+        if v < 0: return f"color: {C_SHORT_T}"
     except:
         pass
     return ""
@@ -70,10 +87,10 @@ def color_return(val):
 def color_expectancy(val):
     try:
         v = float(str(val).replace("%", ""))
-        if v >= 15: return "color: #4F8EF7; font-weight: bold"
-        if v >= 8:  return "color: #4F8EF7"
-        if v >= 4:  return "color: #ff9800"
-        return "color: #F75E5E"
+        if v >= 15: return f"color: {C_GOLD_T}; font-weight: bold"
+        if v >= 8:  return f"color: {C_GOLD_T}"
+        if v >= 4:  return f"color: {C_ORANGE}"
+        return f"color: {C_SHORT_T}"
     except:
         return ""
 
@@ -86,19 +103,28 @@ def _val_cls(val_str: str) -> str:
         pass
     return ""
 
+def _zebra(row):
+    bg = C_CARD if row.name % 2 != 0 else "#141D35"
+    return [f"background-color: {bg}"] * len(row)
+
+# ── HTML component builders ───────────────────────────────────────────────────
+_DIVIDER = f'<hr style="border:none;border-top:1px solid {C_GOLD};opacity:0.25;margin:0.25rem 0;">'
+_SPACER  = '<div style="margin:1.5rem"></div>'
+
 def _metric_card_html(count: int, label: str, side: str) -> str:
+    val_color = C_LONG_T if side == "long" else C_SHORT_T
     return (
-        f'<div class="metric-card {side}">'
+        f'<div class="metric-card">'
         f'<div class="metric-label">{label}</div>'
-        f'<div class="metric-value">{count}</div>'
+        f'<div class="metric-value" style="color:{val_color};">{count}</div>'
         f'</div>'
     )
 
 def _pills_html(rows: pd.DataFrame, edge_col: str) -> str:
     if rows.empty:
         return ""
-    is_long     = "long" in edge_col
-    default_cls = "pill-pos" if is_long else "pill-neg"
+    is_long  = "long" in edge_col
+    pill_cls = "pill-long" if is_long else "pill-short"
 
     def make_pills(subset: pd.DataFrame) -> str:
         if subset.empty:
@@ -109,11 +135,9 @@ def _pills_html(rows: pd.DataFrame, edge_col: str) -> str:
                 v     = float(r.get(edge_col, 0))
                 sign  = "+" if v >= 0 else ""
                 label = f"{r['symbol']} {sign}{v * 100:.1f}%"
-                cls   = "pill-pos" if v >= 0 else "pill-neg"
             except:
                 label = r["symbol"]
-                cls   = default_cls
-            pills.append(f'<span class="pill {cls}">{label}</span>')
+            pills.append(f'<span class="pill {pill_cls}">{label}</span>')
         return '<div class="pill-container">' + "".join(pills) + "</div>"
 
     has_types = "asset_type" in rows.columns
@@ -129,10 +153,33 @@ def _pills_html(rows: pd.DataFrame, edge_col: str) -> str:
         html += '<p class="pill-group-label">ETFs</p>' + make_pills(etfs)
     return html
 
+def _edge_metrics_html(row: pd.Series) -> str:
+    def card(label, val_str, help_text=""):
+        try:
+            v = float(val_str.replace("%", ""))
+            vc = C_GOLD_T if v > 0 else C_SHORT_T
+        except:
+            vc = C_TEXT2
+        title = f' title="{help_text}"' if help_text else ""
+        return (
+            f'<div class="edge-metric"{title}>'
+            f'<div class="edge-metric-label">{label}</div>'
+            f'<div class="edge-metric-value" style="color:{vc};">{val_str}</div>'
+            f'</div>'
+        )
+    return (
+        '<div class="edge-metrics-row">'
+        + card("Long HitEdge",  pct(row.get("long_edge")),      "Long win rate vs unconditional base rise rate")
+        + card("Long MagEdge",  pct(row.get("long_mag_edge")),  "Long mean return vs unconditional mean return")
+        + card("Short HitEdge", pct(row.get("short_edge")),     "Short win rate vs unconditional base fall rate")
+        + card("Short MagEdge", pct(row.get("short_mag_edge")), "Short mean return vs unconditional mean return")
+        + '</div>'
+    )
+
 def _detail_card_html(row: pd.Series, side: str, hold: str, pre: str) -> str:
     is_long   = side == "LONG"
     prefix    = "long" if is_long else "short"
-    cls       = "long" if is_long else "short"
+    hdr_bg    = C_LONG if is_long else C_SHORT
     direction = "histogram &gt; 0" if is_long else "histogram &lt; 0"
     win_label = "Win Rate (Rise / Total)" if is_long else "Win Rate (Fall / Total)"
 
@@ -154,25 +201,27 @@ def _detail_card_html(row: pd.Series, side: str, hold: str, pre: str) -> str:
 
     return (
         f'<div class="detail-card">'
-        f'<div class="detail-card-header {cls}">{side} State &nbsp;&middot;&nbsp; {direction}</div>'
+        f'<div class="detail-card-header" style="background:{hdr_bg};">'
+        f'{side} State &nbsp;&middot;&nbsp; {direction}'
+        f'</div>'
         f'<div class="detail-card-body">'
-        + drow("Observations",          str(total),                              colorize=False)
-        + drow("Rise / Fall",           f"{rise_n} / {fall_n}",                 colorize=False)
-        + drow(win_label,               pct(row.get(f"{prefix}_win_rate")))
-        + drow("Hit Edge vs Base",      pct(row.get(f"{prefix}_edge")))
+        + drow("Observations",      str(total),             colorize=False)
+        + drow("Rise / Fall",       f"{rise_n} / {fall_n}", colorize=False)
+        + drow(win_label,           pct(row.get(f"{prefix}_win_rate")))
+        + drow("Hit Edge vs Base",  pct(row.get(f"{prefix}_edge")))
         + dsec(f"Post-event ({hold})")
-        + drow("Mean (Rise)",           pct(row.get(f"{prefix}_post_mean_rise")))
-        + drow("Mean (Fall)",           pct(row.get(f"{prefix}_post_mean_fall")))
-        + drow("Mean (Total)",          pct(row.get(f"{prefix}_post_mean_total")))
-        + drow("Magnitude Edge",        pct(row.get(f"{prefix}_mag_edge")))
-        + drow("+1 Std Dev",            pct(row.get(f"{prefix}_plus1sd")))
-        + drow("-1 Std Dev",            pct(row.get(f"{prefix}_minus1sd")))
-        + drow("Max Change",            pct(row.get(f"{prefix}_post_max")))
-        + drow("Min Change",            pct(row.get(f"{prefix}_post_min")))
+        + drow("Mean (Rise)",       pct(row.get(f"{prefix}_post_mean_rise")))
+        + drow("Mean (Fall)",       pct(row.get(f"{prefix}_post_mean_fall")))
+        + drow("Mean (Total)",      pct(row.get(f"{prefix}_post_mean_total")))
+        + drow("Magnitude Edge",    pct(row.get(f"{prefix}_mag_edge")))
+        + drow("+1 Std Dev",        pct(row.get(f"{prefix}_plus1sd")))
+        + drow("-1 Std Dev",        pct(row.get(f"{prefix}_minus1sd")))
+        + drow("Max Change",        pct(row.get(f"{prefix}_post_max")))
+        + drow("Min Change",        pct(row.get(f"{prefix}_post_min")))
         + dsec(f"Pre-event ({pre})")
-        + drow("Pre-event Mean",        pct(row.get(f"{prefix}_pre_mean")))
-        + drow("+1 Std Dev",            pct(row.get(f"{prefix}_pre_plus1sd")))
-        + drow("-1 Std Dev",            pct(row.get(f"{prefix}_pre_minus1sd")))
+        + drow("Pre-event Mean",    pct(row.get(f"{prefix}_pre_mean")))
+        + drow("+1 Std Dev",        pct(row.get(f"{prefix}_pre_plus1sd")))
+        + drow("-1 Std Dev",        pct(row.get(f"{prefix}_pre_minus1sd")))
         + "</div></div>"
     )
 
@@ -186,162 +235,255 @@ def load_latest_results():
     return pd.read_csv(latest, index_col=0), latest
 
 # ── CSS ───────────────────────────────────────────────────────────────────────
-st.markdown("""
+st.markdown(f"""
 <style>
-html, body, [class*="css"] {
+/* ── Base & app background ────────────────────────────────────────────── */
+html, body {{
+    font-size: 15px;
     font-family: 'Inter', 'Segoe UI', sans-serif;
-}
+    color: {C_TEXT};
+}}
+.stApp {{
+    background-color: {C_BG} !important;
+}}
+.element-container {{
+    background-color: transparent !important;
+}}
+.block-container {{
+    padding-top: 2rem !important;
+}}
 
-/* Page title */
-.page-title {
-    font-size: 1.7rem;
+/* ── Sidebar ──────────────────────────────────────────────────────────── */
+[data-testid="stSidebar"] {{
+    background-color: {C_CARD} !important;
+    border-right: 1px solid {C_BORDER} !important;
+}}
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] .stMarkdown p,
+[data-testid="stSidebar"] .stRadio label,
+[data-testid="stSidebar"] .stCheckbox label,
+[data-testid="stSidebar"] .stSlider label {{
+    color: {C_TEXT2} !important;
+    font-size: 13px !important;
+}}
+
+/* ── Dataframe ────────────────────────────────────────────────────────── */
+.stDataFrame {{
+    font-size: 13px !important;
+    background-color: {C_CARD} !important;
+    border: 1px solid {C_BORDER} !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+}}
+[data-testid="stDataFrameResizable"] {{
+    background-color: {C_CARD} !important;
+}}
+
+/* ── st.metric ────────────────────────────────────────────────────────── */
+[data-testid="stMetricValue"] {{
+    font-size: 22px !important;
+    font-weight: 700 !important;
+    color: {C_TEXT} !important;
+}}
+[data-testid="stMetricLabel"] {{
+    font-size: 12px !important;
+    color: {C_TEXT2} !important;
+}}
+[data-testid="metric-container"] {{
+    background-color: {C_CARD};
+    border: 1px solid {C_BORDER};
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+}}
+
+/* ── Page title ───────────────────────────────────────────────────────── */
+.title-bar {{
+    border-bottom: 2px solid rgba(184,150,12,0.4);
+    padding-bottom: 0.75rem;
+    margin-bottom: 0.25rem;
+}}
+.page-title {{
+    font-size: 1.75rem;
     font-weight: 700;
-    color: #E8EEFF;
+    color: {C_TEXT};
     letter-spacing: -0.01em;
-    margin: 0 0 0.1rem;
-}
-.page-subtitle {
-    font-size: 0.79rem;
-    color: #6870A0;
-    margin: 0 0 0.5rem;
-}
+    margin: 0;
+}}
+.page-subtitle {{
+    font-size: 0.8rem;
+    color: {C_TEXT2};
+    margin: 0.25rem 0 0;
+}}
 
-/* Section headers */
-.section-title {
-    font-size: 0.72rem;
+/* ── Section headers ──────────────────────────────────────────────────── */
+.section-title {{
+    font-size: 18px;
     font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: #8890A4;
-    margin: 0 0 0.75rem;
-    padding-bottom: 0.45rem;
-    border-bottom: 1px solid #2A2D45;
-}
+    color: {C_GOLD_T};
+    margin: 0 0 0.9rem;
+    letter-spacing: 0.01em;
+}}
 
-/* Signal state metric cards */
-.metric-card {
-    background: #1E1E2E;
+/* ── Signal state metric cards ────────────────────────────────────────── */
+.metric-card {{
+    background: {C_CARD};
+    border: 1px solid {C_BORDER};
     border-radius: 10px;
     padding: 1.4rem 1.5rem;
     text-align: center;
     margin-bottom: 0.9rem;
-}
-.metric-card .metric-label {
+}}
+.metric-card .metric-label {{
     font-size: 0.68rem;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: #6870A0;
-    margin-bottom: 0.35rem;
-}
-.metric-card .metric-value {
+    color: {C_TEXT2};
+    margin-bottom: 0.4rem;
+}}
+.metric-card .metric-value {{
     font-size: 3rem;
     font-weight: 700;
     line-height: 1;
-}
-.metric-card.long  .metric-value { color: #4F8EF7; }
-.metric-card.short .metric-value { color: #F75E5E; }
+}}
 
-/* Pill badges */
-.pill-group-label {
-    font-size: 0.64rem;
+/* ── Pill badges ──────────────────────────────────────────────────────── */
+.pill-group-label {{
+    font-size: 0.65rem;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: #4A5270;
-    margin: 0.7rem 0 0.25rem;
-}
-.pill-container {
+    color: #3A4B68;
+    margin: 0.8rem 0 0.3rem;
+}}
+.pill-container {{
     display: flex;
     flex-wrap: wrap;
     gap: 0.3rem;
-}
-.pill {
+}}
+.pill {{
     display: inline-block;
-    padding: 0.17rem 0.55rem;
+    padding: 0.18rem 0.6rem;
     border-radius: 999px;
     font-size: 0.72rem;
     font-weight: 500;
-    line-height: 1.5;
+    line-height: 1.55;
     white-space: nowrap;
-}
-.pill-pos {
-    background: rgba(79, 142, 247, 0.12);
-    color: #4F8EF7;
-    border: 1px solid rgba(79, 142, 247, 0.28);
-}
-.pill-neg {
-    background: rgba(247, 94, 94, 0.12);
-    color: #F75E5E;
-    border: 1px solid rgba(247, 94, 94, 0.28);
-}
+}}
+.pill-long {{
+    background: rgba(26, 158, 110, 0.12);
+    color: {C_LONG_T};
+    border: 1px solid rgba(26, 158, 110, 0.32);
+}}
+.pill-short {{
+    background: rgba(158, 42, 42, 0.12);
+    color: {C_SHORT_T};
+    border: 1px solid rgba(158, 42, 42, 0.32);
+}}
 
-/* Info / disclaimer boxes */
-.info-box {
-    background: #1E1E2E;
-    border-left: 3px solid #4F8EF7;
+/* ── Info / disclaimer boxes ──────────────────────────────────────────── */
+.info-box {{
+    background: {C_CARD};
+    border: 1px solid {C_BORDER};
+    border-left: 3px solid {C_LONG};
     border-radius: 0 8px 8px 0;
-    padding: 0.9rem 1.25rem;
+    padding: 1rem 1.3rem;
     margin: 0.5rem 0;
-    font-size: 0.82rem;
-    color: #B8C0D8;
+    font-size: 0.83rem;
+    color: {C_TEXT2};
     line-height: 1.7;
-}
-.warn-box {
-    background: #1E1E2E;
-    border-left: 3px solid #F75E5E;
+}}
+.warn-box {{
+    background: {C_CARD};
+    border: 1px solid {C_BORDER};
+    border-left: 3px solid {C_SHORT};
     border-radius: 0 8px 8px 0;
-    padding: 0.75rem 1.25rem;
+    padding: 0.75rem 1.3rem;
     margin: 0.5rem 0;
     font-size: 0.77rem;
-    color: #8890A4;
+    color: #5A6880;
     line-height: 1.6;
-}
+}}
 
-/* Ticker detail cards */
-.detail-card {
-    background: #1E1E2E;
+/* ── Edge metric row (ticker detail) ──────────────────────────────────── */
+.edge-metrics-row {{
+    display: flex;
+    gap: 0.75rem;
+    margin: 0.75rem 0;
+}}
+.edge-metric {{
+    flex: 1;
+    background: {C_CARD};
+    border: 1px solid {C_BORDER};
+    border-radius: 8px;
+    padding: 0.9rem 1rem;
+    text-align: center;
+    cursor: default;
+}}
+.edge-metric-label {{
+    font-size: 11px;
+    color: {C_TEXT2};
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.45rem;
+}}
+.edge-metric-value {{
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1;
+}}
+
+/* ── Ticker detail cards ──────────────────────────────────────────────── */
+.detail-card {{
+    background: {C_CARD};
+    border: 1px solid {C_BORDER};
     border-radius: 10px;
     overflow: hidden;
     margin-bottom: 0.5rem;
-}
-.detail-card-header {
-    padding: 0.6rem 1.2rem;
+}}
+.detail-card-header {{
+    padding: 0.65rem 1.2rem;
     font-size: 0.75rem;
     font-weight: 600;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-}
-.detail-card-header.long  { background: #4F8EF7; color: #fff; }
-.detail-card-header.short { background: #F75E5E; color: #fff; }
-.detail-card-body { padding: 0.4rem 1.2rem 0.75rem; }
-.detail-row {
+    color: #fff;
+}}
+.detail-card-body {{
+    padding: 0.45rem 1.2rem 0.85rem;
+}}
+.detail-row {{
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.27rem 0;
-    font-size: 0.8rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.035);
-}
-.detail-row:last-child { border-bottom: none; }
-.detail-label { color: #6870A0; }
-.detail-value { font-weight: 500; color: #C8D0E8; }
-.detail-value.pos { color: #4F8EF7; }
-.detail-value.neg { color: #F75E5E; }
-.detail-section-head {
+    padding: 0.28rem 0;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(30, 45, 74, 0.7);
+}}
+.detail-row:last-child {{ border-bottom: none; }}
+.detail-label {{ color: {C_TEXT2}; }}
+.detail-value {{ font-weight: 500; color: {C_TEXT}; }}
+.detail-value.pos {{ color: {C_LONG_T}; }}
+.detail-value.neg {{ color: {C_SHORT_T}; }}
+.detail-section-head {{
     font-size: 0.62rem;
     text-transform: uppercase;
     letter-spacing: 0.11em;
-    color: #3A4060;
+    color: #2E3D58;
     padding: 0.6rem 0 0.1rem;
-}
+}}
 </style>
 """, unsafe_allow_html=True)
 
 # ── Title ─────────────────────────────────────────────────────────────────────
 col_title, col_refresh = st.columns([5, 1])
 with col_title:
-    st.markdown('<p class="page-title">MACD Signal Scanner</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="title-bar">'
+        '<p class="page-title">MACD Signal Scanner</p>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
 with col_refresh:
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown('<div style="margin:1.5rem"></div>', unsafe_allow_html=True)
     if st.button("Refresh", use_container_width=True):
         st.cache_data.clear()
         st.rerun()
@@ -375,15 +517,15 @@ st.markdown(
 )
 
 # ── Strategy overview ─────────────────────────────────────────────────────────
-st.markdown("<br>", unsafe_allow_html=True)
+st.markdown(_SPACER, unsafe_allow_html=True)
 st.markdown(
     f'<div class="info-box">'
-    f'<strong>Strategy Overview</strong><br><br>'
+    f'<strong style="color:{C_TEXT};">Strategy Overview</strong><br><br>'
     f'Tracks {_tf} MACD({_macd.replace("/", ", ")}) histogram signals across stocks and ETFs. '
     f'<strong>LONG signal:</strong> histogram positive &rarr; price behaviour over {_lhold_prose}. '
     f'<strong>SHORT signal:</strong> histogram negative &rarr; price behaviour over {_shold_prose}.<br><br>'
     f'<strong>Win Rate</strong> alone is misleading — a stock rising 60% of all {_unit_word}s shows 60% win rate with no signal at all. '
-    f'<strong>HitEdge</strong> = win rate minus unconditional base rate: positive means the signal genuinely adds timing value above market drift. '
+    f'<strong>HitEdge</strong> = win rate minus unconditional base rate. Positive = signal adds timing value above market drift. '
     f'<strong>MagEdge</strong> = signal {_unit_word}s produce larger moves than average {_unit_word}s.'
     f'</div>',
     unsafe_allow_html=True,
@@ -414,16 +556,16 @@ Negative edge = signal underperforms random for that side.
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("**Filters**")
+    st.markdown(f'<p style="color:{C_GOLD_T};font-weight:600;font-size:15px;margin-bottom:0.5rem;">Filters</p>', unsafe_allow_html=True)
     signal_filter = st.radio("Signal State", ["All", "LONG only", "SHORT only"], index=0)
     asset_filter  = st.radio("Asset Type",   ["All", "Stock", "ETF"],            index=0)
-    st.markdown("---")
+    st.markdown(_DIVIDER, unsafe_allow_html=True)
     min_long_wr      = st.slider("Min Long Win Rate",        0, 100,  0, 5, format="%d%%")
     min_short_wr     = st.slider("Min Short Win Rate",       0, 100,  0, 5, format="%d%%")
     min_long_edge    = st.slider("Min Long HitEdge",       -20,  20,-20, 1, format="%d%%")
     min_combined_exp = st.slider("Min Combined Expectancy",  0,  30,  0, 1, format="%d%%")
-    st.markdown("---")
-    st.markdown("**Display Options**")
+    st.markdown(_DIVIDER, unsafe_allow_html=True)
+    st.markdown(f'<p style="color:{C_GOLD_T};font-weight:600;font-size:15px;margin-bottom:0.5rem;">Display Options</p>', unsafe_allow_html=True)
     show_mag_edge   = st.checkbox("Magnitude Edge columns", value=False)
     show_means      = st.checkbox("Mean return columns",    value=False)
     show_sd         = st.checkbox("Std Dev bands",          value=False)
@@ -443,7 +585,8 @@ if "long_edge"           in filtered.columns: filtered = filtered[filtered["long
 if "combined_expectancy" in filtered.columns: filtered = filtered[filtered["combined_expectancy"].fillna(0) >= min_combined_exp / 100]
 
 # ── Section 1: Current Signal State ──────────────────────────────────────────
-st.divider()
+st.markdown(_DIVIDER, unsafe_allow_html=True)
+st.markdown(_SPACER,  unsafe_allow_html=True)
 st.markdown('<p class="section-title">Current Signal State</p>', unsafe_allow_html=True)
 
 if "active_signal" in df.columns:
@@ -459,17 +602,18 @@ if "active_signal" in df.columns:
         st.markdown(_pills_html(short_rows, "short_edge"), unsafe_allow_html=True)
 
     st.markdown(
-        '<p style="font-size:0.7rem;color:#3A4060;margin-top:0.6rem;">'
-        '% shown = HitEdge vs unconditional base rate &nbsp;&middot;&nbsp; '
-        'positive = signal adds directional value &nbsp;&middot;&nbsp; '
-        'negative = worse than random</p>',
+        f'<p style="font-size:0.7rem;color:#2E3D58;margin-top:0.7rem;">'
+        f'% shown = HitEdge vs unconditional base rate &nbsp;&middot;&nbsp; '
+        f'positive = signal adds directional value &nbsp;&middot;&nbsp; '
+        f'negative = worse than random</p>',
         unsafe_allow_html=True,
     )
 
-st.markdown("<br>", unsafe_allow_html=True)
+st.markdown(_SPACER, unsafe_allow_html=True)
 
 # ── Section 2: Rankings table ─────────────────────────────────────────────────
-st.divider()
+st.markdown(_DIVIDER, unsafe_allow_html=True)
+st.markdown(_SPACER,  unsafe_allow_html=True)
 st.markdown(
     f'<p class="section-title">Rankings &nbsp;&middot;&nbsp; {len(filtered)} tickers</p>',
     unsafe_allow_html=True,
@@ -520,8 +664,9 @@ else:
     edge_cols   = [c for c in ["L: HitEdge", "L: MagEdge", "S: HitEdge", "S: MagEdge"] if c in display.columns]
     return_cols = [c for c in ["L: Mean", "S: Mean", "L: +1SD", "L: -1SD", "S: +1SD", "S: -1SD"] if c in display.columns]
 
+    styled = display.style.apply(_zebra, axis=1)
     styled = (
-        display.style
+        styled
         .map(color_signal,     subset=["State"])
         .map(color_expectancy, subset=["Score"])
         .map(color_winrate,    subset=["L: WinRate", "S: WinRate"])
@@ -532,10 +677,11 @@ else:
 
     st.dataframe(styled, use_container_width=True, height=600)
 
-st.markdown("<br>", unsafe_allow_html=True)
+st.markdown(_SPACER, unsafe_allow_html=True)
 
 # ── Section 3: Ticker detail ──────────────────────────────────────────────────
-st.divider()
+st.markdown(_DIVIDER, unsafe_allow_html=True)
+st.markdown(_SPACER,  unsafe_allow_html=True)
 st.markdown('<p class="section-title">Ticker Detail</p>', unsafe_allow_html=True)
 
 all_symbols = sorted(df["symbol"].unique().tolist())
@@ -544,42 +690,41 @@ selected    = st.selectbox("Select a ticker", all_symbols, label_visibility="col
 if selected:
     row = df[df["symbol"] == selected].iloc[0]
     sig       = row.get("active_signal", "SHORT")
-    sig_color = "#4F8EF7" if sig == "LONG" else "#F75E5E"
+    sig_color = C_LONG if sig == "LONG" else C_SHORT
 
     # Ticker + signal badge header
     st.markdown(
-        f'<div style="display:flex;align-items:baseline;gap:0.75rem;margin:0.5rem 0 0.6rem;">'
-        f'<span style="font-size:1.4rem;font-weight:700;color:#E8EEFF;">{selected}</span>'
-        f'<span style="background:{sig_color};color:#fff;padding:0.15rem 0.7rem;'
+        f'<div style="display:flex;align-items:baseline;gap:0.75rem;margin:0.6rem 0 0.5rem;">'
+        f'<span style="font-size:1.45rem;font-weight:700;color:{C_TEXT};">{selected}</span>'
+        f'<span style="background:{sig_color};color:#fff;padding:0.15rem 0.75rem;'
         f'border-radius:999px;font-size:0.73rem;font-weight:600;letter-spacing:0.07em;">{sig}</span>'
         f'</div>',
         unsafe_allow_html=True,
     )
     st.markdown(
-        f'<p style="font-size:0.77rem;color:#4A5270;margin-bottom:0.8rem;">'
-        f'MACD: <code>{row.get("current_macd", "n/a")}</code> &nbsp;&nbsp;'
-        f'Signal Line: <code>{row.get("current_signal", "n/a")}</code> &nbsp;&nbsp;'
+        f'<p style="font-size:0.77rem;color:{C_TEXT2};margin-bottom:0.25rem;">'
+        f'MACD: <code>{row.get("current_macd", "n/a")}</code>'
+        f'&nbsp;&nbsp;&middot;&nbsp;&nbsp;'
+        f'Signal Line: <code>{row.get("current_signal", "n/a")}</code>'
+        f'&nbsp;&nbsp;&middot;&nbsp;&nbsp;'
         f'Histogram: <code>{row.get("current_diff", "n/a")}</code>'
         f'</p>',
         unsafe_allow_html=True,
     )
 
-    # Edge summary tiles
-    e1, e2, e3, e4 = st.columns(4)
-    e1.metric("Long HitEdge",  pct(row.get("long_edge")),      help="Long win rate vs unconditional base rise rate")
-    e2.metric("Long MagEdge",  pct(row.get("long_mag_edge")),  help="Long mean return vs unconditional mean return")
-    e3.metric("Short HitEdge", pct(row.get("short_edge")),     help="Short win rate vs unconditional base fall rate")
-    e4.metric("Short MagEdge", pct(row.get("short_mag_edge")), help="Short mean return vs unconditional mean return")
+    # Edge summary — custom HTML metric cards (gold=positive, burgundy=negative)
+    st.markdown(_edge_metrics_html(row), unsafe_allow_html=True)
 
+    # Base rate reference line
     st.markdown(
-        f'<p style="font-size:0.7rem;color:#3A4060;margin:0.3rem 0 1rem;">'
-        f'Base rise rate ({_lhold}): <strong style="color:#8890A4;">{pct(row.get("base_long_rise_rate"))}</strong>'
+        f'<p style="font-size:0.7rem;color:#2E3D58;margin:0.1rem 0 1.1rem;">'
+        f'Base rise rate ({_lhold}): <strong style="color:{C_TEXT2};">{pct(row.get("base_long_rise_rate"))}</strong>'
         f'&nbsp;&nbsp;&middot;&nbsp;&nbsp;'
-        f'Base fall rate ({_shold}): <strong style="color:#8890A4;">{pct(row.get("base_short_fall_rate"))}</strong>'
+        f'Base fall rate ({_shold}): <strong style="color:{C_TEXT2};">{pct(row.get("base_short_fall_rate"))}</strong>'
         f'&nbsp;&nbsp;&middot;&nbsp;&nbsp;'
-        f'Base long mean: <strong style="color:#8890A4;">{pct(row.get("base_long_mean"))}</strong>'
+        f'Base long mean: <strong style="color:{C_TEXT2};">{pct(row.get("base_long_mean"))}</strong>'
         f'&nbsp;&nbsp;&middot;&nbsp;&nbsp;'
-        f'Base short mean: <strong style="color:#8890A4;">{pct(row.get("base_short_mean"))}</strong>'
+        f'Base short mean: <strong style="color:{C_TEXT2};">{pct(row.get("base_short_mean"))}</strong>'
         f'</p>',
         unsafe_allow_html=True,
     )
@@ -590,10 +735,11 @@ if selected:
     with col_short:
         st.markdown(_detail_card_html(row, "SHORT", _shold, _pre), unsafe_allow_html=True)
 
-st.markdown("<br>", unsafe_allow_html=True)
+st.markdown(_SPACER, unsafe_allow_html=True)
 
 # ── Section 4: Export ─────────────────────────────────────────────────────────
-st.divider()
+st.markdown(_DIVIDER, unsafe_allow_html=True)
+st.markdown(_SPACER,  unsafe_allow_html=True)
 st.markdown('<p class="section-title">Export</p>', unsafe_allow_html=True)
 
 c1, c2 = st.columns(2)
