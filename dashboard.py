@@ -120,7 +120,7 @@ def _metric_card_html(count: int, label: str, side: str) -> str:
     )
 
 def _signal_pills_html(rows: pd.DataFrame, edge_col: str) -> str:
-    """Current Signal State pills — 4 subsections: Stocks/ETFs × Positive/Negative edge."""
+    """Current Signal State pills — Positive/Negative edge subsections."""
     if rows.empty:
         return ""
 
@@ -145,25 +145,9 @@ def _signal_pills_html(rows: pd.DataFrame, edge_col: str) -> str:
             + make_pills(subset, pill_cls)
         )
 
-    has_types = "asset_type" in rows.columns
-    html = ""
-
-    if has_types:
-        stocks = rows[rows["asset_type"] == "Stock"]
-        etfs   = rows[rows["asset_type"] == "ETF"]
-        html += subsection("Stocks — Positive Edge",
-                           stocks[stocks[edge_col].fillna(0) > 0],  "pill-pos-edge")
-        html += subsection("Stocks — Negative Edge",
-                           stocks[stocks[edge_col].fillna(0) <= 0], "pill-neg-edge")
-        html += subsection("ETFs — Positive Edge",
-                           etfs[etfs[edge_col].fillna(0) > 0],      "pill-pos-edge")
-        html += subsection("ETFs — Negative Edge",
-                           etfs[etfs[edge_col].fillna(0) <= 0],     "pill-neg-edge")
-    else:
-        html += subsection("Positive Edge", rows[rows[edge_col].fillna(0) > 0],  "pill-pos-edge")
-        html += subsection("Negative Edge", rows[rows[edge_col].fillna(0) <= 0], "pill-neg-edge")
-
-    return html
+    pos = rows[rows[edge_col].fillna(0) > 0]
+    neg = rows[rows[edge_col].fillna(0) <= 0]
+    return subsection("Positive Edge", pos, "pill-pos-edge") + subsection("Negative Edge", neg, "pill-neg-edge")
 
 def _edge_metrics_html(row: pd.Series) -> str:
     def card(label, val_str, help_text=""):
@@ -606,7 +590,7 @@ Negative edge = signal underperforms random for that side.
 with st.sidebar:
     st.markdown(f'<p style="color:{C_ACCENT};font-weight:600;font-size:15px;margin-bottom:0.5rem;">Filters</p>', unsafe_allow_html=True)
     signal_filter = st.radio("Signal State", ["All", "LONG only", "SHORT only"], index=0)
-    asset_filter  = st.radio("Asset Type",   ["All", "Stock", "ETF"],            index=0)
+    asset_filter  = st.radio("Asset Type",   ["All", "Stock", "Portfolio", "ETF", "Asia"], index=0)
     st.markdown(_DIVIDER, unsafe_allow_html=True)
     min_long_wr      = st.slider("Min Long Win Rate",        0, 100,  0, 5, format="%d%%")
     min_short_wr     = st.slider("Min Short Win Rate",       0, 100,  0, 5, format="%d%%")
@@ -644,10 +628,37 @@ if "active_signal" in df.columns:
     c1, c2 = st.columns(2)
     with c1:
         st.markdown(_metric_card_html(len(long_rows),  "LONG  ·  histogram positive",  "long"),  unsafe_allow_html=True)
-        st.markdown(_signal_pills_html(long_rows,  "long_edge"),  unsafe_allow_html=True)
     with c2:
         st.markdown(_metric_card_html(len(short_rows), "SHORT  ·  histogram negative", "short"), unsafe_allow_html=True)
-        st.markdown(_signal_pills_html(short_rows, "short_edge"), unsafe_allow_html=True)
+
+    tab_mc, tab_port, tab_etf, tab_asia = st.tabs(["Market Cap", "Portfolio", "ETFs", "Asia"])
+
+    def _render_group_tab(tab, asset_type):
+        with tab:
+            has_at = "asset_type" in df.columns
+            l = long_rows[long_rows["asset_type"]   == asset_type] if has_at else long_rows
+            s = short_rows[short_rows["asset_type"] == asset_type] if has_at else short_rows
+            if l.empty and s.empty:
+                st.caption("No active signals in this group.")
+                return
+            col_l, col_s = st.columns(2)
+            with col_l:
+                st.markdown(
+                    f'<p class="pill-group-label">LONG <span class="pill-count">{len(l)}</span></p>',
+                    unsafe_allow_html=True,
+                )
+                st.markdown(_signal_pills_html(l, "long_edge"), unsafe_allow_html=True)
+            with col_s:
+                st.markdown(
+                    f'<p class="pill-group-label">SHORT <span class="pill-count">{len(s)}</span></p>',
+                    unsafe_allow_html=True,
+                )
+                st.markdown(_signal_pills_html(s, "short_edge"), unsafe_allow_html=True)
+
+    _render_group_tab(tab_mc,   "Stock")
+    _render_group_tab(tab_port, "Portfolio")
+    _render_group_tab(tab_etf,  "ETF")
+    _render_group_tab(tab_asia, "Asia")
 
     st.markdown(
         f'<p style="font-size:0.7rem;color:{C_TEXT2};margin-top:0.8rem;">'
