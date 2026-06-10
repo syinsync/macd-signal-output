@@ -260,12 +260,12 @@ html, body {{
 [data-testid="stSidebar"] .stCheckbox label,
 [data-testid="stSidebar"] .stSlider label {{
     color: {C_TEXT2} !important;
-    font-size: 13px !important;
+    font-size: 14px !important;
 }}
 
 /* ── Dataframe ────────────────────────────────────────────────────────── */
 .stDataFrame {{
-    font-size: 13px !important;
+    font-size: 14px !important;
     background-color: {C_CARD} !important;
     border: 1px solid {C_BORDER} !important;
     border-radius: 8px !important;
@@ -292,7 +292,7 @@ html, body {{
 
 /* ── st.metric ────────────────────────────────────────────────────────── */
 [data-testid="stMetricValue"] {{
-    font-size: 22px !important;
+    font-size: 26px !important;
     font-weight: 700 !important;
     color: {C_TEXT} !important;
 }}
@@ -336,7 +336,7 @@ html, body {{
 
 /* ── Section headers ──────────────────────────────────────────────────── */
 .section-title {{
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 600;
     color: {C_ACCENT};
     margin: 0 0 0.9rem;
@@ -394,7 +394,7 @@ html, body {{
     display: inline-block;
     padding: 0.18rem 0.6rem;
     border-radius: 999px;
-    font-size: 0.72rem;
+    font-size: 0.87rem;
     font-weight: 500;
     line-height: 1.55;
     white-space: nowrap;
@@ -451,14 +451,14 @@ html, body {{
     cursor: default;
 }}
 .edge-metric-label {{
-    font-size: 11px;
+    font-size: 12px;
     color: {C_TEXT2};
     text-transform: uppercase;
     letter-spacing: 0.08em;
     margin-bottom: 0.45rem;
 }}
 .edge-metric-value {{
-    font-size: 22px;
+    font-size: 26px;
     font-weight: 700;
     line-height: 1;
 }}
@@ -487,7 +487,7 @@ html, body {{
     justify-content: space-between;
     align-items: center;
     padding: 0.28rem 0;
-    font-size: 13px;
+    font-size: 14px;
     border-bottom: 1px solid {C_BORDER};
 }}
 .detail-row:last-child {{ border-bottom: none; }}
