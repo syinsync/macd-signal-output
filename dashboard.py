@@ -548,29 +548,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# ── Strategy overview ─────────────────────────────────────────────────────────
-st.markdown(_SPACER, unsafe_allow_html=True)
-st.markdown(
-    f'<div class="info-box">'
-    f'<strong style="color:{C_TEXT};">Strategy Overview</strong><br><br>'
-    f'Tracks {_tf} MACD({_macd.replace("/", ", ")}) histogram signals across stocks and ETFs. '
-    f'<strong>LONG signal:</strong> histogram positive &rarr; price behaviour over {_lhold_prose}. '
-    f'<strong>SHORT signal:</strong> histogram negative &rarr; price behaviour over {_shold_prose}.<br><br>'
-    f'<strong>Win Rate</strong> alone is misleading — a stock rising 60% of all {_unit_word}s shows 60% win rate with no signal at all. '
-    f'<strong>HitEdge</strong> = win rate minus unconditional base rate. Positive = signal adds timing value above market drift. '
-    f'<strong>MagEdge</strong> = signal {_unit_word}s produce larger moves than average {_unit_word}s.'
-    f'</div>',
-    unsafe_allow_html=True,
-)
-st.markdown(
-    '<div class="warn-box">'
-    '<strong>Disclaimer:</strong> Statistical observations from historical data only — '
-    'not a full backtest or forward prediction. Past performance does not guarantee future results. '
-    'This is not financial advice.'
-    '</div>',
-    unsafe_allow_html=True,
-)
-
 with st.expander("How to read the scores", expanded=False):
     st.markdown(f"""
 | Column | Formula | Meaning |
@@ -818,3 +795,28 @@ with c2:
         "text/csv",
         use_container_width=True,
     )
+
+# ── Strategy overview ─────────────────────────────────────────────────────────
+st.markdown(_SPACER, unsafe_allow_html=True)
+st.markdown(_DIVIDER, unsafe_allow_html=True)
+st.markdown(_SPACER, unsafe_allow_html=True)
+st.markdown(
+    f'<div class="info-box">'
+    f'<strong style="color:{C_TEXT};">Strategy Overview</strong><br><br>'
+    f'Tracks {_tf} MACD({_macd.replace("/", ", ")}) histogram signals across stocks and ETFs. '
+    f'<strong>LONG signal:</strong> histogram positive &rarr; price behaviour over {_lhold_prose}. '
+    f'<strong>SHORT signal:</strong> histogram negative &rarr; price behaviour over {_shold_prose}.<br><br>'
+    f'<strong>Win Rate</strong> alone is misleading — a stock rising 60% of all {_unit_word}s shows 60% win rate with no signal at all. '
+    f'<strong>HitEdge</strong> = win rate minus unconditional base rate. Positive = signal adds timing value above market drift. '
+    f'<strong>MagEdge</strong> = signal {_unit_word}s produce larger moves than average {_unit_word}s.'
+    f'</div>',
+    unsafe_allow_html=True,
+)
+st.markdown(
+    '<div class="warn-box">'
+    '<strong>Disclaimer:</strong> Statistical observations from historical data only — '
+    'not a full backtest or forward prediction. Past performance does not guarantee future results. '
+    'This is not financial advice.'
+    '</div>',
+    unsafe_allow_html=True,
+)
