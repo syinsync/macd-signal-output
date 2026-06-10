@@ -320,13 +320,16 @@ html, body {{
     border-bottom: 2px solid rgba(43,108,176,0.25);
     padding-bottom: 0.75rem;
     margin-bottom: 0.25rem;
+    overflow: visible;
 }}
 .page-title {{
-    font-size: 1.75rem;
+    font-size: 28px;
     font-weight: 700;
     color: {C_TEXT};
     letter-spacing: -0.01em;
     margin: 0;
+    white-space: nowrap;
+    overflow: visible;
 }}
 .page-subtitle {{
     font-size: 0.8rem;
@@ -506,19 +509,17 @@ html, body {{
 """, unsafe_allow_html=True)
 
 # ── Title ─────────────────────────────────────────────────────────────────────
-col_title, col_refresh = st.columns([5, 1])
-with col_title:
-    st.markdown(
-        '<div class="title-bar">'
-        '<p class="page-title">MACD Signal Scanner</p>'
-        '</div>',
-        unsafe_allow_html=True,
-    )
+col_spacer, col_refresh = st.columns([5, 1])
 with col_refresh:
-    st.markdown(_SPACER, unsafe_allow_html=True)
     if st.button("Refresh", use_container_width=True):
         st.cache_data.clear()
         st.rerun()
+st.markdown(
+    '<div class="title-bar">'
+    '<p class="page-title">MACD Signal Scanner</p>'
+    '</div>',
+    unsafe_allow_html=True,
+)
 
 # ── Load data ─────────────────────────────────────────────────────────────────
 df, filepath = load_latest_results()
