@@ -321,8 +321,12 @@ html, body {{
 .element-container {{
     background-color: transparent !important;
 }}
-.block-container {{
-    padding-top: 1.6rem !important;
+header[data-testid="stHeader"] {{
+    background: transparent;
+    height: 0;
+}}
+.main .block-container {{
+    padding-top: 3rem !important;
 }}
 
 /* ── Sidebar ──────────────────────────────────────────────────────────── */
@@ -641,9 +645,9 @@ html, body {{
 
 # ── Title ─────────────────────────────────────────────────────────────────────
 st.markdown(
-    '<div class="title-bar">'
-    '<p class="page-title">MACD Signal Scanner</p>'
-    '</div>',
+    '<h1 style="font-size:32px; font-weight:700; margin-bottom:0.5rem; color:#1A202C;">'
+    'MACD Signal Scanner'
+    '</h1>',
     unsafe_allow_html=True,
 )
 # ── Load data ─────────────────────────────────────────────────────────────────
