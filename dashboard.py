@@ -6,6 +6,7 @@ Run with: streamlit run dashboard.py
 """
 
 import glob
+import json
 import os
 import pandas as pd
 
@@ -119,21 +120,36 @@ def _metric_card_html(count: int, label: str, side: str) -> str:
         f'</div>'
     )
 
-def _signal_pills_html(rows: pd.DataFrame, edge_col: str) -> str:
-    """Current Signal State pills — Positive/Negative edge subsections."""
+def _signal_pills_html(rows: pd.DataFrame, edge_col: str, side: str = "long") -> str:
+    """Current Signal State pills — Positive/Negative edge subsections.
+
+    Each pill shows:  TICKER {sign}{hist_count}
+    Sign is '+' for LONG side and '-' for SHORT side.
+    Flip bars (count == 0) get a bolder, darker pill style.
+    """
     if rows.empty:
         return ""
+
+    count_sign = "+" if side == "long" else "-"
 
     def make_pills(subset: pd.DataFrame, pill_cls: str) -> str:
         pills = []
         for _, r in subset.sort_values(edge_col, ascending=False).iterrows():
             try:
-                v     = float(r.get(edge_col, 0))
-                sign  = "+" if v >= 0 else ""
-                label = f"{r['symbol']} {sign}{v * 100:.1f}%"
+                hc_raw = r.get("current_hist_count")
+                if hc_raw is not None and pd.notna(hc_raw):
+                    hc = int(hc_raw)
+                    count_str = f"{count_sign}{hc}"
+                    is_flip   = hc == 0
+                else:
+                    count_str = ""
+                    is_flip   = False
+                flip_cls = " pill-flip" if is_flip else ""
+                label    = f"{r['symbol']} {count_str}".strip() if count_str else r["symbol"]
             except:
-                label = r["symbol"]
-            pills.append(f'<span class="pill {pill_cls}">{label}</span>')
+                label    = r["symbol"]
+                flip_cls = ""
+            pills.append(f'<span class="pill {pill_cls}{flip_cls}">{label}</span>')
         return '<div class="pill-container">' + "".join(pills) + "</div>"
 
     def subsection(label: str, subset: pd.DataFrame, pill_cls: str) -> str:
@@ -220,6 +236,66 @@ def _detail_card_html(row: pd.Series, side: str, hold: str, pre: str) -> str:
         + drow("-1 Std Dev",        pct(row.get(f"{prefix}_pre_minus1sd")))
         + "</div></div>"
     )
+
+_BUCKET_ORDER = ["0", "1-4", "5-8", "9-12", "13+"]
+
+def _bucket_table_html(bucket_stats_json, side: str, base_rate) -> str:
+    """Render a per-count-bucket breakdown as an HTML table."""
+    if bucket_stats_json is None or (isinstance(bucket_stats_json, float) and pd.isna(bucket_stats_json)):
+        return '<p style="color:#718096;font-size:0.8rem;">No bucket data available.</p>'
+    try:
+        bstats = json.loads(bucket_stats_json)
+    except Exception:
+        return '<p style="color:#718096;font-size:0.8rem;">No bucket data.</p>'
+
+    try:
+        br = float(base_rate)
+        if br != br:
+            br = None
+    except Exception:
+        br = None
+
+    rows_html = ""
+    for bucket in _BUCKET_ORDER:
+        stats   = bstats.get(bucket, {})
+        n_obs   = int(stats.get("total_events") or 0)
+        wr_raw  = stats.get("win_rate")
+        mn_raw  = stats.get("post_mean_total")
+
+        is_flip = bucket == "0"
+        row_cls = ' class="bucket-flip"' if is_flip else ""
+
+        wr_str  = f"{float(wr_raw)*100:.0f}%" if wr_raw is not None else "n/a"
+        mn_str  = f"{float(mn_raw)*100:+.1f}%" if mn_raw is not None else "n/a"
+
+        if wr_raw is not None and br is not None:
+            edge    = float(wr_raw) - br
+            edge_c  = C_POS if edge >= 0 else C_NEG
+            edge_str = f'<span style="color:{edge_c};">{edge*100:+.1f}%</span>'
+        else:
+            edge_str = "n/a"
+
+        limited = '<span class="bucket-limited">⚠ limited</span>' if n_obs < 20 else ""
+
+        rows_html += (
+            f"<tr{row_cls}>"
+            f"<td>{bucket}</td>"
+            f"<td>{n_obs}{limited}</td>"
+            f"<td>{wr_str}</td>"
+            f"<td>{mn_str}</td>"
+            f"<td>{edge_str}</td>"
+            f"</tr>"
+        )
+
+    return (
+        '<table class="bucket-table">'
+        "<thead><tr>"
+        "<th>Bucket</th><th>Obs</th><th>Win Rate</th><th>Mean Ret</th><th>HitEdge</th>"
+        "</tr></thead>"
+        f"<tbody>{rows_html}</tbody>"
+        "</table>"
+    )
+
 
 # ── Data loader ───────────────────────────────────────────────────────────────
 @st.cache_data(ttl=60)
@@ -505,6 +581,58 @@ html, body {{
     color: {C_TEXT2};
     padding: 0.6rem 0 0.1rem;
 }}
+
+/* ── Flip-bar pills (count == 0) ──────────────────────────────────── */
+.pill-flip {{
+    font-weight: 700;
+    border-width: 2px;
+}}
+.pill-pos-edge.pill-flip {{
+    color: #1A5C38;
+    border-color: #1A5C38;
+    background: #ECFDF5;
+}}
+.pill-neg-edge.pill-flip {{
+    color: #7B341E;
+    border-color: #9C4221;
+    background: #FFF5EB;
+}}
+
+/* ── Count Analysis bucket table ──────────────────────────────────── */
+.bucket-table {{
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-top: 0.4rem;
+}}
+.bucket-table th {{
+    text-align: left;
+    padding: 0.35rem 0.7rem;
+    background: {C_SECTION};
+    color: {C_TEXT2};
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border-bottom: 1px solid {C_BORDER};
+}}
+.bucket-table th:not(:first-child) {{ text-align: right; }}
+.bucket-table td {{
+    padding: 0.3rem 0.7rem;
+    border-bottom: 1px solid {C_BORDER};
+    color: {C_TEXT};
+}}
+.bucket-table td:not(:first-child) {{ text-align: right; }}
+.bucket-table tr:last-child td {{ border-bottom: none; }}
+.bucket-flip td {{
+    background: #FFFBEB;
+    font-weight: 600;
+    color: #92400E;
+}}
+.bucket-limited {{
+    color: #C05621;
+    font-size: 0.68rem;
+    margin-left: 0.25rem;
+}}
 </style>
 """, unsafe_allow_html=True)
 
@@ -625,13 +753,13 @@ if "active_signal" in df.columns:
                     f'<p class="pill-group-label">LONG <span class="pill-count">{len(l)}</span></p>',
                     unsafe_allow_html=True,
                 )
-                st.markdown(_signal_pills_html(l, "long_edge"), unsafe_allow_html=True)
+                st.markdown(_signal_pills_html(l, "long_edge",  side="long"),  unsafe_allow_html=True)
             with col_s:
                 st.markdown(
                     f'<p class="pill-group-label">SHORT <span class="pill-count">{len(s)}</span></p>',
                     unsafe_allow_html=True,
                 )
-                st.markdown(_signal_pills_html(s, "short_edge"), unsafe_allow_html=True)
+                st.markdown(_signal_pills_html(s, "short_edge", side="short"), unsafe_allow_html=True)
 
     _render_group_tab(tab_mc,   "Stock")
     _render_group_tab(tab_port, "Portfolio")
@@ -771,6 +899,63 @@ if selected:
         st.markdown(_detail_card_html(row, "LONG",  _lhold, _pre), unsafe_allow_html=True)
     with col_short:
         st.markdown(_detail_card_html(row, "SHORT", _shold, _pre), unsafe_allow_html=True)
+
+    # ── Count Analysis ─────────────────────────────────────────────────────
+    st.markdown(_DIVIDER, unsafe_allow_html=True)
+    st.markdown(
+        '<p class="section-title" style="font-size:16px;margin-top:0.8rem;">Count Analysis</p>',
+        unsafe_allow_html=True,
+    )
+
+    _hc_now = row.get("current_hist_count")
+    if _hc_now is not None and pd.notna(_hc_now):
+        _hc_int = int(_hc_now)
+        _hc_sign = "+" if row.get("active_signal") == "LONG" else "-"
+        st.markdown(
+            f'<p style="font-size:0.78rem;color:{C_TEXT2};margin-bottom:0.6rem;">'
+            f'Current bar: <strong style="color:{C_TEXT};">{_hc_sign}{_hc_int}</strong> bars into this '
+            f'{"positive" if row.get("active_signal") == "LONG" else "negative"} histogram phase. '
+            f'Row <strong style="color:#92400E;">highlighted gold</strong> = flip bar (count 0, strongest signal).'
+            f'</p>',
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            f'<p style="font-size:0.78rem;color:{C_TEXT2};margin-bottom:0.6rem;">'
+            f'No count data for current bar (no histogram flip detected yet in history).'
+            f'</p>',
+            unsafe_allow_html=True,
+        )
+
+    ca_col_l, ca_col_s = st.columns(2)
+    with ca_col_l:
+        st.markdown(
+            f'<p style="font-size:0.7rem;font-weight:600;text-transform:uppercase;'
+            f'letter-spacing:0.08em;color:{C_POS};margin-bottom:0.3rem;">LONG buckets</p>',
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            _bucket_table_html(
+                row.get("long_bucket_stats"),
+                side="long",
+                base_rate=row.get("base_long_rise_rate"),
+            ),
+            unsafe_allow_html=True,
+        )
+    with ca_col_s:
+        st.markdown(
+            f'<p style="font-size:0.7rem;font-weight:600;text-transform:uppercase;'
+            f'letter-spacing:0.08em;color:{C_NEG};margin-bottom:0.3rem;">SHORT buckets</p>',
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            _bucket_table_html(
+                row.get("short_bucket_stats"),
+                side="short",
+                base_rate=row.get("base_short_fall_rate"),
+            ),
+            unsafe_allow_html=True,
+        )
 
 st.markdown(_SPACER, unsafe_allow_html=True)
 
