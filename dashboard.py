@@ -646,12 +646,6 @@ st.markdown(
     '</div>',
     unsafe_allow_html=True,
 )
-_col_gap, _col_refresh = st.columns([6, 1])
-with _col_refresh:
-    if st.button("Refresh", use_container_width=True):
-        st.cache_data.clear()
-        st.rerun()
-
 # ── Load data ─────────────────────────────────────────────────────────────────
 df, filepath = load_latest_results()
 if df is None:
