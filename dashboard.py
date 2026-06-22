@@ -109,7 +109,7 @@ def _zebra(row):
 
 # ── HTML component builders ───────────────────────────────────────────────────
 _DIVIDER = f'<hr style="border:none;border-top:1px solid {C_ACCENT};opacity:0.18;margin:0.25rem 0;">'
-_SPACER  = '<div style="margin:1.5rem"></div>'
+_SPACER  = '<div style="margin:1.2rem"></div>'
 
 def _metric_card_html(count: int, label: str, side: str) -> str:
     val_color = C_POS if side == "long" else C_NEG
@@ -322,7 +322,7 @@ html, body {{
     background-color: transparent !important;
 }}
 .block-container {{
-    padding-top: 2rem !important;
+    padding-top: 1.6rem !important;
 }}
 
 /* ── Sidebar ──────────────────────────────────────────────────────────── */
@@ -339,6 +339,13 @@ html, body {{
     font-size: 14px !important;
 }}
 
+/* ── Tab labels (Market Cap / Portfolio / ETFs / Asia) ────────────────── */
+[data-testid="stTabs"] [data-baseweb="tab"] button p,
+[data-testid="stTabs"] [role="tab"] {{
+    font-size: 16px !important;
+    font-weight: 500 !important;
+}}
+
 /* ── Dataframe ────────────────────────────────────────────────────────── */
 .stDataFrame {{
     font-size: 14px !important;
@@ -350,7 +357,6 @@ html, body {{
 [data-testid="stDataFrameResizable"] {{
     background-color: {C_CARD} !important;
 }}
-/* Column headers and cell text — HTML table fallback (non-canvas renderers) */
 .stDataFrame th {{
     color: {C_TEXT} !important;
     background-color: {C_SECTION} !important;
@@ -360,7 +366,6 @@ html, body {{
 .stDataFrame td {{
     color: {C_TEXT} !important;
 }}
-/* Glide-data-grid column header text (canvas overlay labels) */
 [data-testid="stDataFrameResizable"] [role="columnheader"],
 [data-testid="stDataFrameResizable"] [role="gridcell"] {{
     color: {C_TEXT} !important;
@@ -389,17 +394,18 @@ html, body {{
 [data-testid="stExpander"] summary span {{
     color: {C_TEXT} !important;
     font-weight: 600 !important;
+    font-size: 15px !important;
 }}
 
 /* ── Page title ───────────────────────────────────────────────────────── */
 .title-bar {{
     border-bottom: 2px solid rgba(43,108,176,0.25);
-    padding-bottom: 0.75rem;
-    margin-bottom: 0.25rem;
+    padding-bottom: 0.6rem;
+    margin-bottom: 0.2rem;
     overflow: visible;
 }}
 .page-title {{
-    font-size: 28px;
+    font-size: 32px;
     font-weight: 700;
     color: {C_TEXT};
     letter-spacing: -0.01em;
@@ -408,17 +414,17 @@ html, body {{
     overflow: visible;
 }}
 .page-subtitle {{
-    font-size: 0.8rem;
+    font-size: 14px;
     color: {C_TEXT2};
     margin: 0.25rem 0 0;
 }}
 
 /* ── Section headers ──────────────────────────────────────────────────── */
 .section-title {{
-    font-size: 20px;
-    font-weight: 600;
+    font-size: 22px;
+    font-weight: 700;
     color: {C_ACCENT};
-    margin: 0 0 0.9rem;
+    margin: 0 0 0.72rem;
     letter-spacing: 0.01em;
 }}
 
@@ -427,12 +433,12 @@ html, body {{
     background: {C_CARD};
     border: 1px solid {C_BORDER};
     border-radius: 10px;
-    padding: 1.4rem 1.5rem;
+    padding: 1.12rem 1.2rem;
     text-align: center;
-    margin-bottom: 0.9rem;
+    margin-bottom: 0.72rem;
 }}
 .metric-card .metric-label {{
-    font-size: 0.68rem;
+    font-size: 14px;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     color: {C_TEXT2};
@@ -446,19 +452,19 @@ html, body {{
 
 /* ── Pill badges ──────────────────────────────────────────────────────── */
 .pill-group-label {{
-    font-size: 0.65rem;
+    font-size: 15px;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
     color: {C_TEXT2};
-    margin: 0.85rem 0 0.3rem;
-    font-weight: 600;
+    margin: 0.68rem 0 0.24rem;
 }}
 .pill-count {{
     background: {C_SECTION};
     color: {C_TEXT2};
     border-radius: 999px;
     padding: 0.05rem 0.45rem;
-    font-size: 0.62rem;
+    font-size: 12px;
     font-weight: 600;
     display: inline-block;
     vertical-align: middle;
@@ -471,14 +477,13 @@ html, body {{
 }}
 .pill {{
     display: inline-block;
-    padding: 0.18rem 0.6rem;
+    padding: 0.2rem 0.7rem;
     border-radius: 999px;
-    font-size: 0.87rem;
+    font-size: 15px;
     font-weight: 500;
     line-height: 1.55;
     white-space: nowrap;
 }}
-/* Current Signal State: quadrant pills */
 .pill-pos-edge {{
     background: {C_CARD};
     color: {C_POS};
@@ -496,9 +501,9 @@ html, body {{
     border: 1px solid {C_BORDER};
     border-left: 3px solid {C_POS};
     border-radius: 0 8px 8px 0;
-    padding: 1rem 1.3rem;
-    margin: 0.5rem 0;
-    font-size: 0.83rem;
+    padding: 0.8rem 1.3rem;
+    margin: 0.4rem 0;
+    font-size: 14px;
     color: {C_TEXT2};
     line-height: 1.7;
 }}
@@ -507,9 +512,9 @@ html, body {{
     border: 1px solid {C_BORDER};
     border-left: 3px solid {C_NEG};
     border-radius: 0 8px 8px 0;
-    padding: 0.75rem 1.3rem;
-    margin: 0.5rem 0;
-    font-size: 0.77rem;
+    padding: 0.6rem 1.3rem;
+    margin: 0.4rem 0;
+    font-size: 12px;
     color: {C_TEXT2};
     line-height: 1.6;
 }}
@@ -518,23 +523,23 @@ html, body {{
 .edge-metrics-row {{
     display: flex;
     gap: 0.75rem;
-    margin: 0.75rem 0;
+    margin: 0.6rem 0;
 }}
 .edge-metric {{
     flex: 1;
     background: {C_CARD};
     border: 1px solid {C_BORDER};
     border-radius: 8px;
-    padding: 0.9rem 1rem;
+    padding: 0.72rem 1rem;
     text-align: center;
     cursor: default;
 }}
 .edge-metric-label {{
-    font-size: 12px;
+    font-size: 14px;
     color: {C_TEXT2};
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    margin-bottom: 0.45rem;
+    margin-bottom: 0.36rem;
 }}
 .edge-metric-value {{
     font-size: 26px;
@@ -548,25 +553,25 @@ html, body {{
     border: 1px solid {C_BORDER};
     border-radius: 10px;
     overflow: hidden;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.4rem;
 }}
 .detail-card-header {{
-    padding: 0.65rem 1.2rem;
-    font-size: 0.75rem;
+    padding: 0.52rem 1.2rem;
+    font-size: 14px;
     font-weight: 600;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     color: #fff;
 }}
 .detail-card-body {{
-    padding: 0.45rem 1.2rem 0.85rem;
+    padding: 0.36rem 1.2rem 0.68rem;
 }}
 .detail-row {{
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.28rem 0;
-    font-size: 14px;
+    padding: 0.22rem 0;
+    font-size: 15px;
     border-bottom: 1px solid {C_BORDER};
 }}
 .detail-row:last-child {{ border-bottom: none; }}
@@ -575,11 +580,11 @@ html, body {{
 .detail-value.pos {{ color: {C_POS}; }}
 .detail-value.neg {{ color: {C_NEG}; }}
 .detail-section-head {{
-    font-size: 0.62rem;
+    font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.11em;
     color: {C_TEXT2};
-    padding: 0.6rem 0 0.1rem;
+    padding: 0.48rem 0 0.08rem;
 }}
 
 /* ── Flip-bar pills (count == 0) ──────────────────────────────────── */
@@ -602,7 +607,7 @@ html, body {{
 .bucket-table {{
     width: 100%;
     border-collapse: collapse;
-    font-size: 13px;
+    font-size: 14px;
     margin-top: 0.4rem;
 }}
 .bucket-table th {{
@@ -610,7 +615,7 @@ html, body {{
     padding: 0.35rem 0.7rem;
     background: {C_SECTION};
     color: {C_TEXT2};
-    font-size: 0.62rem;
+    font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     border-bottom: 1px solid {C_BORDER};
@@ -630,24 +635,26 @@ html, body {{
 }}
 .bucket-limited {{
     color: #C05621;
-    font-size: 0.68rem;
+    font-size: 12px;
     margin-left: 0.25rem;
 }}
 </style>
 """, unsafe_allow_html=True)
 
 # ── Title ─────────────────────────────────────────────────────────────────────
-col_spacer, col_refresh = st.columns([5, 1])
+col_title, col_refresh = st.columns([6, 1])
+with col_title:
+    st.markdown(
+        '<div class="title-bar">'
+        '<p class="page-title">MACD Signal Scanner</p>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
 with col_refresh:
+    st.markdown('<div style="height:0.5rem"></div>', unsafe_allow_html=True)
     if st.button("Refresh", use_container_width=True):
         st.cache_data.clear()
         st.rerun()
-st.markdown(
-    '<div class="title-bar">'
-    '<p class="page-title">MACD Signal Scanner</p>'
-    '</div>',
-    unsafe_allow_html=True,
-)
 
 # ── Load data ─────────────────────────────────────────────────────────────────
 df, filepath = load_latest_results()
