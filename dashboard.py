@@ -344,10 +344,13 @@ header[data-testid="stHeader"] {{
 }}
 
 /* ── Tab labels (Market Cap / Portfolio / ETFs / Asia) ────────────────── */
-[data-testid="stTabs"] [data-baseweb="tab"] button p,
 [data-testid="stTabs"] [role="tab"] {{
-    font-size: 16px !important;
-    font-weight: 500 !important;
+    font-size: 18px !important;
+    font-weight: 600 !important;
+}}
+[data-testid="stTabs"] [role="tab"][aria-selected="true"] {{
+    border-bottom: 3px solid {C_ACCENT} !important;
+    color: {C_ACCENT} !important;
 }}
 
 /* ── Dataframe ────────────────────────────────────────────────────────── */
