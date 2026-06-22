@@ -410,8 +410,6 @@ html, body {{
     color: {C_TEXT};
     letter-spacing: -0.01em;
     margin: 0;
-    white-space: nowrap;
-    overflow: visible;
 }}
 .page-subtitle {{
     font-size: 14px;
@@ -642,16 +640,14 @@ html, body {{
 """, unsafe_allow_html=True)
 
 # ── Title ─────────────────────────────────────────────────────────────────────
-col_title, col_refresh = st.columns([6, 1])
-with col_title:
-    st.markdown(
-        '<div class="title-bar">'
-        '<p class="page-title">MACD Signal Scanner</p>'
-        '</div>',
-        unsafe_allow_html=True,
-    )
-with col_refresh:
-    st.markdown('<div style="height:0.5rem"></div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="title-bar">'
+    '<p class="page-title">MACD Signal Scanner</p>'
+    '</div>',
+    unsafe_allow_html=True,
+)
+_col_gap, _col_refresh = st.columns([6, 1])
+with _col_refresh:
     if st.button("Refresh", use_container_width=True):
         st.cache_data.clear()
         st.rerun()
