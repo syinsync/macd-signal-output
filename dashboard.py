@@ -5,9 +5,10 @@ Streamlit dashboard — MACD signal explorer.
 Run with: streamlit run dashboard.py
 """
 
-import glob
 import json
 import os
+from datetime import datetime
+
 import pandas as pd
 
 try:
@@ -300,11 +301,11 @@ def _bucket_table_html(bucket_stats_json, side: str, base_rate) -> str:
 # ── Data loader ───────────────────────────────────────────────────────────────
 @st.cache_data(ttl=60)
 def load_latest_results():
-    csvs = sorted(glob.glob(os.path.join(RESULTS_DIR, "signal_stats_*.csv")))
-    if not csvs:
+    # Each scan overwrites this single file; freshness comes from its mtime.
+    path = os.path.join(RESULTS_DIR, "signal_stats.csv")
+    if not os.path.exists(path):
         return None, None
-    latest = csvs[-1]
-    return pd.read_csv(latest, index_col=0), latest
+    return pd.read_csv(path, index_col=0), path
 
 # ── CSS ───────────────────────────────────────────────────────────────────────
 st.markdown(f"""
@@ -672,11 +673,13 @@ _unit_word   = {"M": "month", "W": "week", "D": "day"}.get(_unit, "period")
 _lhold_prose = f"{_lbars} {_unit_word}{'s' if _lbars != 1 else ''}"
 _shold_prose = f"{_sbars} {_unit_word}{'s' if _sbars != 1 else ''}"
 
+_updated = datetime.fromtimestamp(os.path.getmtime(filepath)).strftime("%Y-%m-%d %H:%M")
+
 st.markdown(
     f'<p class="page-subtitle">'
     f'{_tf} &nbsp;&middot;&nbsp; MACD({_macd.replace("/", ", ")}) &nbsp;&middot;&nbsp; '
     f'State-based &nbsp;&middot;&nbsp; Ranked by Combined Expectancy &nbsp;&middot;&nbsp; '
-    f'<code>{os.path.basename(filepath)}</code> &nbsp;&middot;&nbsp; {len(df)} tickers'
+    f'Updated {_updated} &nbsp;&middot;&nbsp; {len(df)} tickers'
     f'</p>',
     unsafe_allow_html=True,
 )
