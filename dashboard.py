@@ -694,8 +694,8 @@ with st.expander("How to read the scores", expanded=False):
     st.markdown(f"""
 | Column | Formula | Meaning |
 |---|---|---|
-| **Score** | (L Mean + \|S Mean\|) / 2 | Combined expectancy in % return units |
-| **Win Rate** | rise\_n / total | % of signal-state {_unit_word}s price moved in the desired direction |
+| **Score** | (L Mean + \\|S Mean\\|) / 2 | Combined expectancy in % return units |
+| **Win Rate** | rise\\_n / total | % of signal-state {_unit_word}s price moved in the desired direction |
 | **HitEdge** | Win Rate − Base Rate | Positive = signal times market better than random |
 | **MagEdge** | Signal Mean − Base Mean | Positive = signal {_unit_word}s produce larger moves than average |
 | **L: Base** | unconditional | % of ALL {_unit_word}s price rose over {_lhold} (no signal) |
