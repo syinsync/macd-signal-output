@@ -673,13 +673,19 @@ _unit_word   = {"M": "month", "W": "week", "D": "day"}.get(_unit, "period")
 _lhold_prose = f"{_lbars} {_unit_word}{'s' if _lbars != 1 else ''}"
 _shold_prose = f"{_sbars} {_unit_word}{'s' if _sbars != 1 else ''}"
 
-_updated = datetime.fromtimestamp(os.path.getmtime(filepath)).strftime("%Y-%m-%d %H:%M")
+# Freshness = the latest price bar the scan is based on (carried in the data so
+# it survives git checkout / file-mtime resets). Fall back to file mtime for old
+# CSVs that predate the data_through column.
+if "data_through" in df.columns and df["data_through"].notna().any():
+    _freshness = f'Prices through {pd.to_datetime(df["data_through"]).max():%Y-%m-%d}'
+else:
+    _freshness = f'Updated {datetime.fromtimestamp(os.path.getmtime(filepath)):%Y-%m-%d %H:%M}'
 
 st.markdown(
     f'<p class="page-subtitle">'
     f'{_tf} &nbsp;&middot;&nbsp; MACD({_macd.replace("/", ", ")}) &nbsp;&middot;&nbsp; '
     f'State-based &nbsp;&middot;&nbsp; Ranked by Combined Expectancy &nbsp;&middot;&nbsp; '
-    f'Updated {_updated} &nbsp;&middot;&nbsp; {len(df)} tickers'
+    f'{_freshness} &nbsp;&middot;&nbsp; {len(df)} tickers'
     f'</p>',
     unsafe_allow_html=True,
 )
