@@ -95,6 +95,18 @@ def color_expectancy(val):
     except:
         return ""
 
+def color_robust(val):
+    # Risk-adjusted reliability (t-stat): higher = signal move is large vs its
+    # noise and well-sampled. ~2 is the conventional "meaningful" threshold.
+    try:
+        v = float(str(val))
+        if v >= 2.5: return f"color: {C_ACCENT}; font-weight: bold"
+        if v >= 1.5: return f"color: {C_ACCENT}"
+        if v >= 0.5: return f"color: {C_ORANGE}"
+        return f"color: {C_NEG}"
+    except:
+        return ""
+
 def _val_cls(val_str: str) -> str:
     try:
         v = float(str(val_str).replace("%", ""))
@@ -684,7 +696,7 @@ else:
 st.markdown(
     f'<p class="page-subtitle">'
     f'{_tf} &nbsp;&middot;&nbsp; MACD({_macd.replace("/", ", ")}) &nbsp;&middot;&nbsp; '
-    f'State-based &nbsp;&middot;&nbsp; Ranked by Combined Expectancy &nbsp;&middot;&nbsp; '
+    f'State-based &nbsp;&middot;&nbsp; Ranked by Robust Score &nbsp;&middot;&nbsp; '
     f'{_freshness} &nbsp;&middot;&nbsp; {len(df)} tickers'
     f'</p>',
     unsafe_allow_html=True,
@@ -694,7 +706,8 @@ with st.expander("How to read the scores", expanded=False):
     st.markdown(f"""
 | Column | Formula | Meaning |
 |---|---|---|
-| **Score** | (L Mean + \\|S Mean\\|) / 2 | Combined expectancy in % return units |
+| **Robust** | mean / (std / √events) | **Primary ranking.** Risk- & sample-adjusted reliability (t-stat); short side rewards falling price. ~2+ = meaningful. Penalises volatile, thin-sample names. |
+| **Score** | (L Mean + \\|S Mean\\|) / 2 | Combined expectancy in % return units (raw move size — inflated by volatility) |
 | **Win Rate** | rise\\_n / total | % of signal-state {_unit_word}s price moved in the desired direction |
 | **HitEdge** | Win Rate − Base Rate | Positive = signal times market better than random |
 | **MagEdge** | Signal Mean − Base Mean | Positive = signal {_unit_word}s produce larger moves than average |
@@ -786,74 +799,6 @@ if "active_signal" in df.columns:
         f'grey = worse than random</p>',
         unsafe_allow_html=True,
     )
-
-st.markdown(_SPACER, unsafe_allow_html=True)
-
-# ── Section 2: Rankings table ─────────────────────────────────────────────────
-st.markdown(_DIVIDER, unsafe_allow_html=True)
-st.markdown(_SPACER,  unsafe_allow_html=True)
-st.markdown(
-    f'<p class="section-title">Rankings &nbsp;&middot;&nbsp; {len(filtered)} tickers</p>',
-    unsafe_allow_html=True,
-)
-
-if filtered.empty:
-    st.info("No tickers match the current filters.")
-else:
-    display = pd.DataFrame()
-    display["Ticker"] = filtered["symbol"]
-    display["Type"]   = filtered["asset_type"] if "asset_type" in filtered.columns else "—"
-    display["State"]  = filtered["active_signal"]
-    display["Score"]  = filtered["combined_expectancy"].apply(pct)
-
-    # Default columns
-    display["L: WinRate"] = filtered["long_win_rate"].apply(pct)
-    display["L: HitEdge"] = filtered["long_edge"].apply(pct)
-    display["S: WinRate"] = filtered["short_win_rate"].apply(pct)
-    display["S: HitEdge"] = filtered["short_edge"].apply(pct)
-
-    # Optional columns
-    if show_mag_edge:
-        display["L: MagEdge"] = filtered["long_mag_edge"].apply(pct)  if "long_mag_edge"  in filtered.columns else "n/a"
-        display["S: MagEdge"] = filtered["short_mag_edge"].apply(pct) if "short_mag_edge" in filtered.columns else "n/a"
-    if show_means:
-        display["L: Mean"] = filtered["long_post_mean_total"].apply(pct)
-        display["S: Mean"] = filtered["short_post_mean_total"].apply(pct)
-    if show_sd:
-        display["L: +1SD"] = filtered["long_plus1sd"].apply(pct)
-        display["L: -1SD"] = filtered["long_minus1sd"].apply(pct)
-        display["S: +1SD"] = filtered["short_plus1sd"].apply(pct)
-        display["S: -1SD"] = filtered["short_minus1sd"].apply(pct)
-    if show_base_rates:
-        display["L: Base"] = filtered["base_long_rise_rate"].apply(pct)  if "base_long_rise_rate"  in filtered.columns else "n/a"
-        display["S: Base"] = filtered["base_short_fall_rate"].apply(pct) if "base_short_fall_rate" in filtered.columns else "n/a"
-    if show_pre_event:
-        display["L: PreMean"] = filtered["long_pre_mean"].apply(pct)
-        display["S: PreMean"] = filtered["short_pre_mean"].apply(pct)
-    if show_raw_macd:
-        display["Histogram"] = filtered["current_diff"]
-        display["MACD"]      = filtered["current_macd"]
-        display["SigLine"]   = filtered["current_signal"]
-
-    display = display.reset_index(drop=True)
-    display.index += 1
-    display.index.name = "Rank"
-
-    edge_cols   = [c for c in ["L: HitEdge", "L: MagEdge", "S: HitEdge", "S: MagEdge"] if c in display.columns]
-    return_cols = [c for c in ["L: Mean", "S: Mean", "L: +1SD", "L: -1SD", "S: +1SD", "S: -1SD"] if c in display.columns]
-
-    styled = display.style.apply(_zebra, axis=1)
-    styled = (
-        styled
-        .map(color_signal,     subset=["State"])
-        .map(color_expectancy, subset=["Score"])
-        .map(color_winrate,    subset=["L: WinRate", "S: WinRate"])
-        .map(color_edge,       subset=edge_cols)
-    )
-    if return_cols:
-        styled = styled.map(color_return, subset=return_cols)
-
-    st.dataframe(styled, use_container_width=True, height=600)
 
 st.markdown(_SPACER, unsafe_allow_html=True)
 
@@ -969,6 +914,83 @@ if selected:
             ),
             unsafe_allow_html=True,
         )
+
+st.markdown(_SPACER, unsafe_allow_html=True)
+
+# ── Section 2: Rankings table ─────────────────────────────────────────────────
+st.markdown(_DIVIDER, unsafe_allow_html=True)
+st.markdown(_SPACER,  unsafe_allow_html=True)
+st.markdown(
+    f'<p class="section-title">Rankings &nbsp;&middot;&nbsp; {len(filtered)} tickers</p>',
+    unsafe_allow_html=True,
+)
+st.caption(
+    "Ranked by **Robust** — a risk- and sample-adjusted reliability score "
+    "(t = mean move / (std / √events); short side rewards falling price). "
+    "It penalises high-volatility, thin-sample names that raw Score (average move) inflates."
+)
+
+if filtered.empty:
+    st.info("No tickers match the current filters.")
+else:
+    display = pd.DataFrame()
+    display["Ticker"] = filtered["symbol"]
+    display["Type"]   = filtered["asset_type"] if "asset_type" in filtered.columns else "—"
+    display["State"]  = filtered["active_signal"]
+    if "robust_score" in filtered.columns:
+        display["Robust"] = filtered["robust_score"].map(lambda v: f"{v:.2f}" if pd.notna(v) else "n/a")
+    display["Score"]  = filtered["combined_expectancy"].apply(pct)
+
+    # Default columns
+    display["L: WinRate"] = filtered["long_win_rate"].apply(pct)
+    display["L: HitEdge"] = filtered["long_edge"].apply(pct)
+    display["S: WinRate"] = filtered["short_win_rate"].apply(pct)
+    display["S: HitEdge"] = filtered["short_edge"].apply(pct)
+
+    # Optional columns
+    if show_mag_edge:
+        display["L: MagEdge"] = filtered["long_mag_edge"].apply(pct)  if "long_mag_edge"  in filtered.columns else "n/a"
+        display["S: MagEdge"] = filtered["short_mag_edge"].apply(pct) if "short_mag_edge" in filtered.columns else "n/a"
+    if show_means:
+        display["L: Mean"] = filtered["long_post_mean_total"].apply(pct)
+        display["S: Mean"] = filtered["short_post_mean_total"].apply(pct)
+    if show_sd:
+        display["L: +1SD"] = filtered["long_plus1sd"].apply(pct)
+        display["L: -1SD"] = filtered["long_minus1sd"].apply(pct)
+        display["S: +1SD"] = filtered["short_plus1sd"].apply(pct)
+        display["S: -1SD"] = filtered["short_minus1sd"].apply(pct)
+    if show_base_rates:
+        display["L: Base"] = filtered["base_long_rise_rate"].apply(pct)  if "base_long_rise_rate"  in filtered.columns else "n/a"
+        display["S: Base"] = filtered["base_short_fall_rate"].apply(pct) if "base_short_fall_rate" in filtered.columns else "n/a"
+    if show_pre_event:
+        display["L: PreMean"] = filtered["long_pre_mean"].apply(pct)
+        display["S: PreMean"] = filtered["short_pre_mean"].apply(pct)
+    if show_raw_macd:
+        display["Histogram"] = filtered["current_diff"]
+        display["MACD"]      = filtered["current_macd"]
+        display["SigLine"]   = filtered["current_signal"]
+
+    display = display.reset_index(drop=True)
+    display.index += 1
+    display.index.name = "Rank"
+
+    edge_cols   = [c for c in ["L: HitEdge", "L: MagEdge", "S: HitEdge", "S: MagEdge"] if c in display.columns]
+    return_cols = [c for c in ["L: Mean", "S: Mean", "L: +1SD", "L: -1SD", "S: +1SD", "S: -1SD"] if c in display.columns]
+
+    styled = display.style.apply(_zebra, axis=1)
+    styled = (
+        styled
+        .map(color_signal,     subset=["State"])
+        .map(color_expectancy, subset=["Score"])
+        .map(color_winrate,    subset=["L: WinRate", "S: WinRate"])
+        .map(color_edge,       subset=edge_cols)
+    )
+    if "Robust" in display.columns:
+        styled = styled.map(color_robust, subset=["Robust"])
+    if return_cols:
+        styled = styled.map(color_return, subset=return_cols)
+
+    st.dataframe(styled, use_container_width=True, height=600)
 
 st.markdown(_SPACER, unsafe_allow_html=True)
 
