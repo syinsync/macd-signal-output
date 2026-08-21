@@ -706,7 +706,7 @@ with st.expander("How to read the scores", expanded=False):
     st.markdown(f"""
 | Column | Formula | Meaning |
 |---|---|---|
-| **Robust** | mean / (std / √events) | **Primary ranking.** Risk- & sample-adjusted reliability (t-stat); short side rewards falling price. ~2+ = meaningful. Penalises volatile, thin-sample names. |
+| **Robust** | mean / (std / √(events/hold)) | **Primary ranking.** Risk- & sample-adjusted reliability (t-stat); short side rewards falling price. Events deflated by hold length because signal-state windows overlap. ~2+ = meaningful. Penalises volatile, thin-sample, long-trend names. |
 | **Score** | (L Mean + \\|S Mean\\|) / 2 | Combined expectancy in % return units (raw move size — inflated by volatility) |
 | **Win Rate** | rise\\_n / total | % of signal-state {_unit_word}s price moved in the desired direction |
 | **HitEdge** | Win Rate − Base Rate | Positive = signal times market better than random |
@@ -926,8 +926,10 @@ st.markdown(
 )
 st.caption(
     "Ranked by **Robust** — a risk- and sample-adjusted reliability score "
-    "(t = mean move / (std / √events); short side rewards falling price). "
-    "It penalises high-volatility, thin-sample names that raw Score (average move) inflates."
+    "(t = mean move / (std / √effective events); short side rewards falling price). "
+    "Effective events = events / hold, deflated because consecutive signal-state "
+    "windows overlap. It penalises high-volatility, thin-sample, and long-trend "
+    "names that raw Score (average move) inflates."
 )
 
 if filtered.empty:
